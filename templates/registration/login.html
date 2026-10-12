@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Log in · PrepMe Portal{% endblock %}
+{% load static %}
 {% block content %}
+<img class="auth-logo" src="{% static 'img/logo.png' %}" alt="PrepMe" width="480" height="372">
 <div class="card auth-box">
   <h1>Log in</h1>
   <form method="post" class="stacked">

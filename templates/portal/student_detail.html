@@ -71,6 +71,20 @@
     <h2>School list</h2>
     {% if can_edit %}<a class="btn small" href="{% url 'application_add' student.pk %}">{% if user.is_counselor %}Add school{% else %}Request a school{% endif %}</a>{% endif %}
   </div>
+  {% if user.is_counselor and pending_ids %}
+  <form method="post" action="{% url 'applications_bulk' %}" class="notice">
+    {% csrf_token %}
+    {% for pk in pending_ids %}<input type="hidden" name="application" value="{{ pk }}">{% endfor %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    {{ student.first_name }} has {{ pending_ids|length }} request{{ pending_ids|length|pluralize }} waiting.
+    <span class="row-actions">
+      <button class="btn small" type="submit" name="decision" value="approve">Approve all</button>
+      <a class="btn small secondary" href="{% url 'dashboard' %}">Review one by one</a>
+    </span>
+  </form>
+  {% elif not user.is_counselor and pending_ids %}
+  <p class="subtle">Schools marked "Waiting for approval" will be added once your counselor approves them.</p>
+  {% endif %}
   <ul class="rows">
     {% for app in applications %}
     <li>

@@ -189,6 +189,24 @@ def approve(application, by):
         raise ValidationError("There is nothing to approve for this school.")
 
 
+def decide_many(applications, by, *, accept):
+    """Approve (accept=True) or decline a batch of pending requests.
+
+    Each request is handled on its own, so one problem (e.g. a UCAS limit) does not
+    block the rest. Returns (done, problems) where problems is a list of (application, message).
+    """
+    done, problems = [], []
+    action = approve if accept else decline
+    for application in applications:
+        try:
+            action(application, by)
+        except ValidationError as exc:
+            problems.append((application, " ".join(exc.messages)))
+        else:
+            done.append(application)
+    return done, problems
+
+
 @transaction.atomic
 def decline(application, by):
     if application.status == Application.Status.PENDING_ADD:

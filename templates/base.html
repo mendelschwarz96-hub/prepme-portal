@@ -5,12 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>{% block title %}PrepMe Portal{% endblock %}</title>
+  <meta name="theme-color" content="#861111">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="{% url 'home' %}">PrepMe Portal</a>
+    <a class="brand" href="{% url 'home' %}">
+      <img src="{% static 'img/logo-mark.png' %}" alt="" width="52" height="40">
+      <span>PrepMe<small>Student Portal</small></span>
+    </a>
     {% if user.is_authenticated %}
     <nav class="topnav" aria-label="Main">
       {% if user.is_counselor %}

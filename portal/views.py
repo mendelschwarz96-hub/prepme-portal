@@ -1,4 +1,5 @@
 from datetime import timedelta
+from itertools import groupby
 
 from django.conf import settings
 from django.contrib import messages
@@ -105,10 +106,14 @@ def dashboard(request):
         "week_end": week_end,
         "overdue": open_tasks.filter(due_date__lt=today),
         "this_week": open_tasks.filter(due_date__gte=today, due_date__lte=week_end),
-        "pending": Application.objects.filter(
-            status__in=[Application.Status.PENDING_ADD, Application.Status.PENDING_REMOVAL]
-        ).select_related("student", "university", "requested_by"),
     }
+    pending = (
+        Application.objects.filter(status__in=[Application.Status.PENDING_ADD, Application.Status.PENDING_REMOVAL])
+        .select_related("student", "university", "requested_by")
+        .order_by("student__last_name", "student__first_name", "student_id", "created_at")
+    )
+    context["pending_groups"] = [(student, list(apps)) for student, apps in groupby(pending, key=lambda a: a.student)]
+    context["pending_count"] = sum(len(apps) for _, apps in context["pending_groups"])
     return render(request, "portal/dashboard.html", context)
 
 
@@ -152,10 +157,12 @@ def student_detail(request, pk):
     student = get_student(request.user, pk)
     audit.log(request, Action.VIEW, student)
     tasks = student.tasks.filter(archived=False).select_related("owner", "application__university")
+    applications = list(student.applications.filter(status__in=Application.OPEN).select_related("university"))
     context = {
         "student": student,
         "can_edit": can_edit_student(request.user, student),
-        "applications": student.applications.filter(status__in=Application.OPEN).select_related("university"),
+        "applications": applications,
+        "pending_ids": [a.pk for a in applications if a.status != Application.Status.ACTIVE],
         "open_tasks": tasks.exclude(status=Task.Status.DONE),
         "done_tasks": tasks.filter(status=Task.Status.DONE),
         "test_scores": student.test_scores.all(),
@@ -322,6 +329,37 @@ def application_decline(request, pk):
         audit.log(request, Action.DECLINE, application)
         messages.success(request, f"Declined: {application.university} for {application.student}.")
     return redirect(_next_or(request, reverse("student_detail", args=[application.student.pk])))
+
+
+@login_required
+@counselor_required
+@require_POST
+def applications_bulk(request):
+    """Approve or decline many pending requests at once (e.g. a student's whole college list)."""
+    accept = request.POST.get("decision") == "approve"
+    ids = [i for i in request.POST.getlist("application") if i.isdigit()]
+    pending = list(
+        Application.objects.filter(
+            pk__in=ids, status__in=[Application.Status.PENDING_ADD, Application.Status.PENDING_REMOVAL]
+        )
+        .select_related("student", "university")
+        .order_by("student__last_name", "created_at")
+    )
+    if not pending:
+        messages.error(request, "Select at least one request.")
+        return redirect(_next_or(request, reverse("dashboard")))
+    done, problems = deadlines.decide_many(pending, request.user, accept=accept)
+    for application in done:
+        audit.log(
+            request, Action.APPROVE if accept else Action.DECLINE, application,
+            detail=f"Bulk decision. Now: {application.get_status_display()}",
+        )
+    if done:
+        verb = "Approved" if accept else "Declined"
+        messages.success(request, f"{verb} {len(done)} request{'s' if len(done) != 1 else ''}.")
+    for application, problem in problems:
+        messages.error(request, f"{application.university} for {application.student}: {problem}")
+    return redirect(_next_or(request, reverse("dashboard")))
 
 
 @login_required

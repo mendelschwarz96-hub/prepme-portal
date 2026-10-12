@@ -1,20 +1,24 @@
+/* Colors taken from the PrepMe logo (maroon #861111 on white). */
 :root {
-  --bg: #f6f7f9;
+  --bg: #faf7f6;
   --surface: #ffffff;
-  --text: #1c2430;
-  --muted: #5b6676;
-  --border: #dde2e8;
-  --brand: #1f3a5f;
+  --text: #2a1d1d;
+  --muted: #6b5c5c;
+  --border: #e8dede;
+  --brand: #861111;
+  --brand-dark: #660d0d;
+  --brand-tint: #f7eaea;
   --brand-contrast: #ffffff;
-  --accent: #2f6fde;
+  --accent: #861111;
   --danger: #b42318;
   --danger-bg: #fdecea;
-  --warn: #8a5a00;
+  --warn: #7a5200;
   --warn-bg: #fff4d6;
-  --ok: #1d7a46;
-  --ok-bg: #e5f5ec;
-  --info-bg: #e8f0fd;
+  --ok: #1d6b42;
+  --ok-bg: #e5f3eb;
+  --info-bg: #f7eaea;
   --radius: 10px;
+  --serif: Georgia, "Times New Roman", serif;
 }
 
 * { box-sizing: border-box; }
@@ -26,24 +30,29 @@ body {
   font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 a { color: var(--accent); }
-h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
-h2 { font-size: 1.15rem; margin: 0 0 .75rem; }
+h1, h2 { font-family: var(--serif); color: var(--brand); font-weight: 700; }
+h1 { font-size: 1.6rem; margin: 0 0 .25rem; }
+h2 { font-size: 1.2rem; margin: 0 0 .75rem; }
 h3 { font-size: 1rem; margin: 1rem 0 .5rem; }
 p { margin: .25rem 0 .75rem; }
 
 /* Header */
-.topbar { background: var(--brand); color: var(--brand-contrast); }
+.topbar { background: var(--surface); border-bottom: 3px solid var(--brand); }
 .topbar-inner {
-  max-width: 1000px; margin: 0 auto; padding: .6rem 16px;
+  max-width: 1000px; margin: 0 auto; padding: .5rem 16px;
   display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem;
 }
-.brand { color: inherit; font-weight: 700; text-decoration: none; font-size: 1.1rem; margin-right: auto; }
-.topnav { display: flex; flex-wrap: wrap; gap: .25rem .9rem; }
-.topnav a { color: var(--brand-contrast); text-decoration: none; opacity: .9; }
-.topnav a:hover { opacity: 1; text-decoration: underline; }
+.brand { display: flex; align-items: center; gap: .55rem; color: var(--brand); text-decoration: none; margin-right: auto; }
+.brand img { height: 40px; width: auto; display: block; }
+.brand span { font-family: var(--serif); font-size: 1.35rem; line-height: 1; }
+.brand small { display: block; font-family: system-ui, sans-serif; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-top: .15rem; }
+.topnav { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .9rem; }
+.topnav a, .topnav button { color: var(--brand); text-decoration: none; font-weight: 600; }
+.topnav a:hover, .topnav button:hover { text-decoration: underline; }
 .topnav form { display: inline; }
-.topnav button { background: none; border: 0; color: var(--brand-contrast); padding: 0; font: inherit; cursor: pointer; opacity: .9; }
-.badge { display: inline-block; min-width: 1.3em; padding: 0 .4em; border-radius: 999px; background: #f59e0b; color: #1c2430; font-size: .8rem; text-align: center; font-weight: 700; }
+.topnav button { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; cursor: pointer; }
+.badge { display: inline-block; min-width: 1.3em; padding: 0 .4em; border-radius: 999px; background: var(--brand); color: var(--brand-contrast); font-size: .8rem; text-align: center; font-weight: 700; }
+.auth-logo { display: block; width: 180px; max-width: 60%; height: auto; margin: 1.5rem auto 0; }
 
 main { max-width: 1000px; margin: 0 auto; padding: 1rem 16px 3rem; }
 
@@ -65,6 +74,10 @@ main { max-width: 1000px; margin: 0 auto; padding: 1rem 16px 3rem; }
 .row-main .title { font-weight: 600; overflow-wrap: anywhere; }
 .row-actions { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
 
+.check-row { display: flex; gap: .7rem; align-items: center; flex: 1 1 14rem; min-width: 0; cursor: pointer; }
+.check-row input { flex: none; width: 1.35rem; height: 1.35rem; accent-color: var(--brand); }
+.check-row .row-main { display: flex; flex-direction: column; }
+
 dl.facts { display: grid; grid-template-columns: minmax(7rem, max-content) 1fr; gap: .3rem 1rem; margin: 0; }
 dl.facts dt { color: var(--muted); }
 dl.facts dd { margin: 0; overflow-wrap: anywhere; }
@@ -83,8 +96,12 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   border: 1px solid var(--brand); background: var(--brand); color: var(--brand-contrast);
   font: inherit; font-weight: 600; text-decoration: none; cursor: pointer;
 }
+.btn:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
 .btn.secondary { background: var(--surface); color: var(--brand); }
-.btn.danger { background: var(--danger); border-color: var(--danger); }
+.btn.secondary:hover { background: var(--brand-tint); }
+.btn.danger { background: var(--surface); color: var(--danger); border-color: var(--danger); }
+.btn.danger:hover { background: var(--danger-bg); }
+:focus-visible { outline: 3px solid #c9a227; outline-offset: 2px; }
 .btn.small { min-height: 2rem; padding: .2rem .6rem; font-size: .88rem; }
 .inline-form { display: inline; margin: 0; }
 
@@ -109,6 +126,7 @@ input[type=checkbox] { width: 1.2rem; height: 1.2rem; vertical-align: middle; }
 .messages li.error { background: var(--danger-bg); color: var(--danger); }
 .messages li.warning { background: var(--warn-bg); color: var(--warn); }
 .notice { padding: .65rem .9rem; border-radius: 8px; background: var(--warn-bg); color: var(--warn); margin-bottom: 1rem; }
+.notice .row-actions { margin-top: .5rem; }
 
 .empty { color: var(--muted); font-style: italic; }
 .overdue { color: var(--danger); font-weight: 600; }
