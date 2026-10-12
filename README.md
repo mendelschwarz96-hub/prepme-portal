@@ -68,6 +68,24 @@ one is held back and the rest are approved.
   upcoming deadlines, and essay titles, statuses and word counts. They never see essay text,
   grades, scores or notes. Counselor and student can open the same summary from the student page.
 
+## Phase 3: university data
+
+- **U.S. colleges** come from the official U.S. Department of Education **College Scorecard** API
+  (Universities → Add from College Scorecard). This provides admit rate, SAT/ACT ranges, test policy,
+  cost, tuition, size, share of international students, graduation rate and earnings.
+  "Refresh data" (per school, or all at once) re-downloads them. Scorecard figures can lag a
+  year or two behind schools' own websites.
+- Set a free API key from https://api.data.gov/signup/ as `COLLEGE_SCORECARD_API_KEY` in `.env`.
+  Without one, the shared `DEMO_KEY` is used, which allows only a few requests per hour.
+- **International fields** aren't in the Scorecard, so the counselor maintains them: need-blind/aware
+  for internationals, merit aid, TOEFL/IELTS/Duolingo minimums and international admit rate. Refreshing
+  never overwrites them.
+- **UK / European universities** are added by hand or by **CSV import** (Universities → Import CSV;
+  download the template there). The import shows a preview before anything is saved.
+- **Filter and compare**: counselor and students can filter (admit rate, aid policy, merit aid, cost,
+  test policy, their own SAT/TOEFL/IELTS) and compare up to 4 schools side by side. Parents can't.
+- Application deadlines aren't in the Scorecard either; add them on each university page.
+
 ## Security notes
 
 - Permissions are checked on the server for every request (`portal/permissions.py`).

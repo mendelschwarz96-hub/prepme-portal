@@ -32,7 +32,6 @@ from .forms import (
     StudentSelfForm,
     StudentTaskForm,
     TestScoreForm,
-    UniversityForm,
 )
 from .models import AcademicRecord, Application, DeadlineTemplate, DocumentItem, StudentProfile, Task, TestScore, University
 from .permissions import (
@@ -552,48 +551,7 @@ def document_delete(request, pk):
     return _confirm_page(request, "Remove document?", str(document), back, submit="Remove")
 
 
-# ------------------------------------------------------------------ universities & deadlines (counselor)
-
-@login_required
-@counselor_required
-def university_list(request):
-    q = request.GET.get("q", "").strip()
-    universities = University.objects.annotate(deadline_count=Count("deadlines"))
-    if q:
-        universities = universities.filter(name__icontains=q)
-    return render(request, "portal/university_list.html", {"universities": universities, "q": q})
-
-
-@login_required
-@counselor_required
-@require_http_methods(["GET", "POST"])
-def university_form(request, pk=None):
-    university = get_object_or_404(University, pk=pk) if pk else University()
-    form = UniversityForm(request.POST or None, instance=university)
-    if pk:
-        form.fields["application_system"].disabled = university.applications.exists()
-    if request.method == "POST" and form.is_valid():
-        university = form.save()
-        audit.log(request, Action.UPDATE if pk else Action.CREATE, university)
-        return redirect("university_detail", pk=university.pk)
-    back = reverse("university_detail", args=[pk]) if pk else reverse("university_list")
-    return _form_page(request, form, "Edit university" if pk else "New university", back)
-
-
-@login_required
-@counselor_required
-def university_detail(request, pk):
-    university = get_object_or_404(University, pk=pk)
-    return render(
-        request,
-        "portal/university_detail.html",
-        {
-            "university": university,
-            "deadlines": university.deadlines.all(),
-            "applications": university.applications.filter(status__in=Application.OPEN).select_related("student"),
-        },
-    )
-
+# ------------------------------------------------------------------ deadlines (counselor; university pages are in views_universities)
 
 @login_required
 @counselor_required

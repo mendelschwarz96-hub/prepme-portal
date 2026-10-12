@@ -1,6 +1,8 @@
 from datetime import date
+from decimal import Decimal
 
 from django import forms
+from django.db import models
 from django.db.models import Q
 
 from accounts.models import User
@@ -73,10 +75,150 @@ class TestScoreForm(forms.ModelForm):
         widgets = {"score": forms.TextInput(), "taken_on": DateInput()}
 
 
+class PercentField(forms.DecimalField):
+    """Shows and accepts a percentage (12.5) for a value stored as a fraction (0.125)."""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("min_value", 0)
+        kwargs.setdefault("max_value", 100)
+        kwargs.setdefault("decimal_places", 2)
+        kwargs.setdefault("required", False)
+        super().__init__(**kwargs)
+
+    def prepare_value(self, value):
+        if isinstance(value, Decimal) or isinstance(value, float):
+            return (Decimal(str(value)) * 100).normalize()
+        return value
+
+    def clean(self, value):
+        if self.disabled:
+            return value  # Django passes the stored fraction for read-only fields; keep it as is.
+        value = super().clean(value)
+        return (value / 100).quantize(Decimal("0.0001")) if value is not None else None
+
+
+PERCENT_FIELDS = ("admit_rate", "intl_admit_rate", "intl_student_share", "grad_rate")
+
+UNIVERSITY_FIELDS = [
+    "name", "country", "city", "state", "application_system", "oxbridge", "website",
+    "ownership", "undergrad_size", "admit_rate", "intl_admit_rate", "sat_25", "sat_75", "act_25", "act_75",
+    "test_policy", "intl_student_share", "cost_of_attendance", "tuition", "cost_currency", "grad_rate",
+    "median_earnings", "intl_aid_policy", "merit_aid", "toefl_min", "ielts_min", "duolingo_min", "english_notes",
+]
+
+
 class UniversityForm(forms.ModelForm):
     class Meta:
         model = University
-        fields = ["name", "country", "city", "application_system", "oxbridge", "website"]
+        fields = UNIVERSITY_FIELDS
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in PERCENT_FIELDS:
+            model_field = University._meta.get_field(name)
+            self.fields[name] = PercentField(label=f"{model_field.verbose_name[0].upper()}{model_field.verbose_name[1:]} (%)")
+        if self.instance.pk and self.instance.from_scorecard:
+            # Kept in sync with the College Scorecard; edit them there, not here.
+            for name in University.SCORECARD_FIELDS:
+                self.fields[name].disabled = True
+                self.fields[name].help_text = "From the College Scorecard."
+            self.fields["name"].help_text = "Linked to the College Scorecard."
+
+    def clean(self):
+        cleaned = super().clean()
+        # Read-only (Scorecard) fields keep their stored values exactly.
+        for name, field in self.fields.items():
+            if field.disabled and self.instance.pk:
+                cleaned[name] = getattr(self.instance, name)
+        for low, high in (("sat_25", "sat_75"), ("act_25", "act_75")):
+            if cleaned.get(low) and cleaned.get(high) and cleaned[low] > cleaned[high]:
+                self.add_error(high, "Must be at least the 25th percentile.")
+        if cleaned.get("cost_currency"):
+            cleaned["cost_currency"] = cleaned["cost_currency"].upper()
+        return cleaned
+
+
+class UniversityFilterForm(forms.Form):
+    SORTS = [("name", "Name"), ("admit_rate", "Admit rate (lowest first)"),
+             ("cost", "Cost (lowest first)"), ("-sat_75", "SAT (highest first)")]
+
+    q = forms.CharField(label="Name", required=False)
+    country = forms.ChoiceField(required=False)
+    system = forms.ChoiceField(label="Applies via", required=False,
+                               choices=[("", "Any")] + list(University.System.choices))
+    max_admit = forms.DecimalField(label="Admit rate at most (%)", required=False, min_value=0, max_value=100)
+    aid = forms.ChoiceField(label="Need-based aid for internationals", required=False, choices=[
+        ("", "Any"), ("any", "Need-blind or need-aware"), ("need_blind", "Need-blind only")])
+    merit = forms.BooleanField(label="Offers merit aid to internationals", required=False)
+    max_cost = forms.IntegerField(label="Cost of attendance at most (USD)", required=False, min_value=0)
+    test_optional = forms.BooleanField(label="SAT/ACT not required", required=False)
+    sat = forms.IntegerField(label="My SAT", required=False, min_value=400, max_value=1600,
+                             help_text="Shows schools where this is at or above the 25th percentile.")
+    toefl = forms.IntegerField(label="My TOEFL", required=False, min_value=0, max_value=120,
+                               help_text="Hides schools whose minimum is higher.")
+    ielts = forms.DecimalField(label="My IELTS", required=False, min_value=0, max_value=9)
+    sort = forms.ChoiceField(choices=SORTS, required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        countries = University.objects.order_by("country").values_list("country", flat=True).distinct()
+        self.fields["country"].choices = [("", "Any")] + [(c, c) for c in countries]
+
+    def apply(self, qs):
+        if not self.is_bound or not self.is_valid():
+            return qs.order_by("name")
+        d = self.cleaned_data
+        if d["q"]:
+            qs = qs.filter(name__icontains=d["q"])
+        if d["country"]:
+            qs = qs.filter(country=d["country"])
+        if d["system"]:
+            qs = qs.filter(application_system=d["system"])
+        if d["max_admit"] is not None:
+            qs = qs.filter(admit_rate__lte=d["max_admit"] / 100)
+        if d["aid"] == "need_blind":
+            qs = qs.filter(intl_aid_policy=University.AidPolicy.NEED_BLIND)
+        elif d["aid"] == "any":
+            qs = qs.filter(intl_aid_policy__in=[University.AidPolicy.NEED_BLIND, University.AidPolicy.NEED_AWARE])
+        if d["merit"]:
+            qs = qs.filter(merit_aid__in=[University.MeritAid.YES, University.MeritAid.LIMITED])
+        if d["max_cost"] is not None:
+            qs = qs.filter(cost_currency="USD", cost_of_attendance__lte=d["max_cost"])
+        if d["test_optional"]:
+            qs = qs.filter(test_policy__in=[University.TestPolicy.CONSIDERED, University.TestPolicy.NEITHER])
+        if d["sat"] is not None:
+            qs = qs.filter(sat_25__lte=d["sat"])
+        # English minimums: schools with no minimum recorded are kept (unknown, not excluded).
+        if d["toefl"] is not None:
+            qs = qs.filter(Q(toefl_min__isnull=True) | Q(toefl_min__lte=d["toefl"]))
+        if d["ielts"] is not None:
+            qs = qs.filter(Q(ielts_min__isnull=True) | Q(ielts_min__lte=d["ielts"]))
+        sort = d["sort"] or "name"
+        order = {"cost": "cost_of_attendance"}.get(sort, sort)
+        field = order.lstrip("-")
+        nulls_last = models.F(field).desc(nulls_last=True) if order.startswith("-") else models.F(field).asc(nulls_last=True)
+        return qs.order_by(nulls_last, "name")
+
+
+class CSVUploadForm(forms.Form):
+    file = forms.FileField(label="CSV file", required=False)
+    content = forms.CharField(widget=forms.HiddenInput, required=False)
+
+    MAX_BYTES = 1_000_000
+
+    def clean(self):
+        cleaned = super().clean()
+        upload = cleaned.get("file")
+        if upload:
+            if upload.size > self.MAX_BYTES:
+                raise forms.ValidationError("The file is too large (1 MB maximum).")
+            try:
+                cleaned["content"] = upload.read().decode("utf-8-sig")
+            except UnicodeDecodeError:
+                raise forms.ValidationError("Save the file as CSV UTF-8 and try again.")
+        if not cleaned.get("content"):
+            raise forms.ValidationError("Choose a CSV file.")
+        return cleaned
 
 
 class DeadlineTemplateForm(forms.ModelForm):

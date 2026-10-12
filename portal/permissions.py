@@ -47,6 +47,18 @@ def counselor_required(view):
     return wrapper
 
 
+def browse_universities_required(view):
+    """University profiles, filters and comparison: counselor and students, not parents."""
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        user = request.user
+        if not user.is_authenticated or not (user.is_counselor or user.is_student):
+            raise PermissionDenied
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
 def _check_edit(user, student, edit):
     if edit and not can_edit_student(user, student):
         raise PermissionDenied

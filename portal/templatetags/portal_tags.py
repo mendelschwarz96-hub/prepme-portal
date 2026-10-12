@@ -31,3 +31,35 @@ CHIP_CLASSES = {
 @register.filter
 def chip_class(status):
     return CHIP_CLASSES.get(status, "")
+
+
+@register.filter
+def pct(value):
+    """0.0361 -> '3.6%'. Blank when unknown."""
+    if value is None or value == "":
+        return "—"
+    number = float(value) * 100
+    return f"{number:.1f}%" if number < 10 else f"{number:.0f}%"
+
+
+CURRENCY_SYMBOLS = {"USD": "US$", "GBP": "£", "EUR": "€", "CAD": "C$", "CHF": "CHF "}
+
+
+@register.filter
+def money(value, currency="USD"):
+    if value is None or value == "":
+        return "—"
+    symbol = CURRENCY_SYMBOLS.get((currency or "USD").upper(), f"{currency} ")
+    return f"{symbol}{int(value):,}"
+
+
+@register.filter
+def num(value):
+    return f"{int(value):,}" if value not in (None, "") else "—"
+
+
+@register.filter
+def score_range(low, high):
+    if low is None and high is None:
+        return "—"
+    return f"{low if low is not None else '?'}–{high if high is not None else '?'}"

@@ -168,6 +168,67 @@ class University(models.Model):
     )
     website = models.URLField(blank=True)
 
+    # ---- Phase 3: profile data. Fields in SCORECARD_FIELDS are filled from the U.S.
+    # College Scorecard for linked schools; all others are entered by the counselor.
+    class Ownership(models.TextChoices):
+        PUBLIC = "public", "Public"
+        PRIVATE_NONPROFIT = "private_nonprofit", "Private nonprofit"
+        PRIVATE_FOR_PROFIT = "private_for_profit", "Private for-profit"
+
+    class TestPolicy(models.TextChoices):
+        REQUIRED = "required", "Required"
+        RECOMMENDED = "recommended", "Recommended"
+        CONSIDERED = "considered", "Considered but not required (test-optional)"
+        NEITHER = "neither", "Not required or recommended"
+
+    class AidPolicy(models.TextChoices):
+        NEED_BLIND = "need_blind", "Need-blind for internationals"
+        NEED_AWARE = "need_aware", "Need-aware for internationals"
+        NO_NEED_AID = "no_need_aid", "No need-based aid for internationals"
+
+    class MeritAid(models.TextChoices):
+        YES = "yes", "Yes"
+        LIMITED = "limited", "Limited"
+        NO = "no", "No"
+
+    scorecard_id = models.PositiveIntegerField("College Scorecard ID", null=True, blank=True, unique=True)
+    scorecard_synced_at = models.DateTimeField(null=True, blank=True)
+    state = models.CharField(max_length=50, blank=True)
+    ownership = models.CharField(max_length=20, choices=Ownership.choices, blank=True)
+    undergrad_size = models.PositiveIntegerField("Undergraduates", null=True, blank=True)
+    admit_rate = models.DecimalField("Admit rate (overall)", max_digits=5, decimal_places=4, null=True, blank=True,
+                                     help_text="As a fraction, e.g. 0.12 for 12%.")
+    intl_admit_rate = models.DecimalField("International admit rate", max_digits=5, decimal_places=4, null=True,
+                                          blank=True, help_text="As a fraction, e.g. 0.05 for 5%. Only if published.")
+    sat_25 = models.PositiveSmallIntegerField("SAT 25th percentile", null=True, blank=True)
+    sat_75 = models.PositiveSmallIntegerField("SAT 75th percentile", null=True, blank=True)
+    act_25 = models.PositiveSmallIntegerField("ACT 25th percentile", null=True, blank=True)
+    act_75 = models.PositiveSmallIntegerField("ACT 75th percentile", null=True, blank=True)
+    test_policy = models.CharField("SAT/ACT policy", max_length=20, choices=TestPolicy.choices, blank=True)
+    intl_student_share = models.DecimalField("Share of international undergraduates", max_digits=5,
+                                             decimal_places=4, null=True, blank=True)
+    cost_of_attendance = models.PositiveIntegerField("Cost of attendance per year", null=True, blank=True,
+                                                     help_text="Tuition, housing, food and other costs.")
+    tuition = models.PositiveIntegerField("Tuition per year (international / out-of-state)", null=True, blank=True)
+    cost_currency = models.CharField(max_length=3, default="USD", help_text="USD, GBP, EUR...")
+    grad_rate = models.DecimalField("Graduation rate (6 years)", max_digits=5, decimal_places=4, null=True, blank=True)
+    median_earnings = models.PositiveIntegerField("Median earnings 10 years after entry (USD)", null=True, blank=True)
+    intl_aid_policy = models.CharField("Need-based aid for internationals", max_length=20,
+                                       choices=AidPolicy.choices, blank=True)
+    merit_aid = models.CharField("Merit aid for internationals", max_length=10, choices=MeritAid.choices, blank=True)
+    toefl_min = models.PositiveSmallIntegerField("TOEFL iBT minimum", null=True, blank=True)
+    ielts_min = models.DecimalField("IELTS minimum", max_digits=3, decimal_places=1, null=True, blank=True)
+    duolingo_min = models.PositiveSmallIntegerField("Duolingo minimum", null=True, blank=True)
+    english_notes = models.CharField("English test notes", max_length=200, blank=True,
+                                     help_text="E.g. waived for IB English A, subscores required.")
+    profile_updated_at = models.DateTimeField(null=True, blank=True)
+
+    SCORECARD_FIELDS = (
+        "city", "state", "website", "ownership", "undergrad_size", "admit_rate", "sat_25", "sat_75",
+        "act_25", "act_75", "test_policy", "intl_student_share", "cost_of_attendance", "tuition",
+        "grad_rate", "median_earnings",
+    )
+
     class Meta:
         ordering = ["name"]
         verbose_name_plural = "universities"
@@ -175,6 +236,10 @@ class University(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def from_scorecard(self):
+        return self.scorecard_id is not None
 
 
 class Round(models.TextChoices):

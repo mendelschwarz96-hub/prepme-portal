@@ -10,7 +10,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from accounts.models import User
-from portal import deadlines, essays
+from portal import deadlines, essays, scorecard
 from portal.models import (
     AcademicRecord,
     Curriculum,
@@ -28,9 +28,36 @@ from portal.models import (
 
 DEMO_PASSWORD = "PrepMeDemo!2026"
 
+# College Scorecard IDs (IPEDS unit IDs) of real U.S. colleges used in the demo.
+DEMO_SCORECARD_IDS = {
+    "northeastern": (167358, "Northeastern University"),
+    "boston": (164988, "Boston University"),
+    "nyu": (193900, "New York University"),
+    "stanford": (243744, "Stanford University"),
+    "penn": (215062, "University of Pennsylvania"),
+}
+
 
 class Command(BaseCommand):
     help = "Create demo users, students, universities and deadlines (local testing only)."
+
+    def _scorecard_schools(self):
+        """Create the demo U.S. colleges from College Scorecard data; names only if offline."""
+        try:
+            records = scorecard.fetch([sc_id for sc_id, _ in DEMO_SCORECARD_IDS.values()])
+        except scorecard.ScorecardError as exc:
+            self.stdout.write(self.style.WARNING(f"{exc} Creating U.S. colleges without figures."))
+            records = {}
+        schools = {}
+        for key, (sc_id, name) in DEMO_SCORECARD_IDS.items():
+            university = University(name=name, country="United States", application_system=University.System.COMMON_APP)
+            if sc_id in records:
+                university.name = records[sc_id].get(scorecard.F["name"]) or name
+                university.scorecard_id = sc_id
+                scorecard.apply(university, records[sc_id])
+            university.save()
+            schools[key] = university
+        return schools
 
     def handle(self, *args, **options):
         if not settings.DEBUG:
@@ -76,38 +103,41 @@ class Command(BaseCommand):
         AcademicRecord.objects.create(student=ana, subject="Mathematics AA", level=AcademicRecord.Level.HL,
                                       grade_type=AcademicRecord.GradeType.PREDICTED, grade="6")
 
-        def uni(name, country, system=University.System.COMMON_APP, oxbridge=False):
-            return University.objects.create(name=name, country=country, application_system=system, oxbridge=oxbridge)
+        # Real U.S. colleges with official College Scorecard data (one API request).
+        us = self._scorecard_schools()
+        northeastern, boston, nyu = us["northeastern"], us["boston"], us["nyu"]
+        # Real UK universities. Their figures are left blank: the counselor fills those in.
+        oxford = University.objects.create(name="University of Oxford", country="United Kingdom", city="Oxford",
+                                           application_system=University.System.UCAS, oxbridge=True,
+                                           website="https://www.ox.ac.uk/")
+        ucl = University.objects.create(name="University College London", country="United Kingdom", city="London",
+                                        application_system=University.System.UCAS, website="https://www.ucl.ac.uk/")
 
-        sample_a = uni("Sample University (demo)", "United States")
-        sample_b = uni("Demo College of the Arts (demo)", "United States")
-        sample_eu = uni("Example European University (demo)", "Netherlands")
-        sample_ox = uni("Sample Oxbridge College (demo)", "United Kingdom", University.System.UCAS, oxbridge=True)
-        sample_uk = uni("Sample London University (demo)", "United Kingdom", University.System.UCAS)
-
+        # Deadline DATES are made up (relative to today) so the dashboard has something to show.
         def deadline(university, kind, days, round_=""):
             deadlines.save_template(DeadlineTemplate(
-                university=university, entry_year=year, round=round_, kind=kind, due_date=today + timedelta(days=days)
+                university=university, entry_year=year, round=round_, kind=kind,
+                title=f"{DeadlineKind(kind).label} (sample date)", due_date=today + timedelta(days=days),
             ))
 
-        deadline(sample_a, DeadlineKind.APPLICATION, 3, Round.EA)
-        deadline(sample_a, DeadlineKind.APPLICATION, 80, Round.RD)
-        deadline(sample_a, DeadlineKind.SUPPLEMENT, 3, Round.EA)
-        deadline(sample_a, DeadlineKind.CSS_PROFILE, 5)
-        deadline(sample_b, DeadlineKind.APPLICATION, -2, Round.ED)
-        deadline(sample_b, DeadlineKind.APPLICATION, 60, Round.RD)
-        deadline(sample_eu, DeadlineKind.APPLICATION, 45)
-        deadline(sample_ox, DeadlineKind.APPLICATION, 6, Round.UCAS)
-        deadline(sample_ox, DeadlineKind.ADMISSIONS_TEST, 15, Round.UCAS)
-        deadline(sample_uk, DeadlineKind.APPLICATION, 90, Round.UCAS)
+        deadline(northeastern, DeadlineKind.APPLICATION, 3, Round.EA)
+        deadline(northeastern, DeadlineKind.APPLICATION, 80, Round.RD)
+        deadline(northeastern, DeadlineKind.SUPPLEMENT, 3, Round.EA)
+        deadline(northeastern, DeadlineKind.CSS_PROFILE, 5)
+        deadline(boston, DeadlineKind.APPLICATION, -2, Round.ED)
+        deadline(boston, DeadlineKind.APPLICATION, 60, Round.RD)
+        deadline(nyu, DeadlineKind.APPLICATION, 45, Round.RD)
+        deadline(oxford, DeadlineKind.APPLICATION, 6, Round.UCAS)
+        deadline(oxford, DeadlineKind.ADMISSIONS_TEST, 15, Round.UCAS)
+        deadline(ucl, DeadlineKind.APPLICATION, 90, Round.UCAS)
 
-        deadlines.add_school(ana, sample_a, year, Round.EA, counselor)
-        deadlines.add_school(ana, sample_ox, year, Round.UCAS, counselor, course="PPE")
-        deadlines.add_school(ana, sample_eu, year, Round.RD, student_user)  # pending approval
-        deadlines.add_school(pedro, sample_b, year, Round.ED, counselor)
-        deadlines.add_school(pedro, sample_a, year, Round.RD, counselor)
+        deadlines.add_school(ana, northeastern, year, Round.EA, counselor)
+        deadlines.add_school(ana, oxford, year, Round.UCAS, counselor, course="PPE")
+        deadlines.add_school(ana, nyu, year, Round.RD, student_user)  # pending approval
+        deadlines.add_school(pedro, boston, year, Round.ED, counselor)
+        deadlines.add_school(pedro, northeastern, year, Round.RD, counselor)
         # Pedro has submitted a whole list for approval at once.
-        for uni, round_ in [(sample_eu, Round.RD), (sample_uk, Round.UCAS), (sample_ox, Round.UCAS)]:
+        for uni, round_ in [(nyu, Round.RD), (ucl, Round.UCAS), (oxford, Round.UCAS)]:
             deadlines.add_school(pedro, uni, year, round_, pedro_user)
 
         # Phase 2: prompts, an essay with history and comments, meeting notes.
@@ -116,8 +146,8 @@ class Command(BaseCommand):
             text="Sample prompt: share a story about yourself that you think colleges should know.", word_limit=650,
         )
         EssayPrompt.objects.create(
-            university=sample_a, entry_year=year, title="Why Sample University?",
-            text="Sample prompt: why do you want to attend Sample University?", word_limit=250,
+            university=northeastern, entry_year=year, title="Why this university? (sample prompt)",
+            text="Sample prompt, not the school's real one: why do you want to attend?", word_limit=250,
         )
         EssayPrompt.objects.create(
             application_system=University.System.UCAS, entry_year=year, title="UCAS personal statement",
@@ -144,6 +174,7 @@ class Command(BaseCommand):
         )
 
         self.stdout.write(self.style.SUCCESS("Demo data loaded. Log in with any of these (password: %s):" % DEMO_PASSWORD))
+        self.stdout.write("University figures for U.S. schools are real (College Scorecard); deadline dates and prompts are samples.")
         for email, role in [
             ("counselor@demo.test", "counselor"),
             ("ana@demo.test", "student"),

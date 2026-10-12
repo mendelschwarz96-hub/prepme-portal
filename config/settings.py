@@ -193,6 +193,10 @@ SITE_URL = env("SITE_URL", "http://127.0.0.1:8000")
 
 INVITE_VALID_DAYS = 14
 
+# U.S. College Scorecard API (free key from https://api.data.gov/signup/).
+# Without a key the shared DEMO_KEY is used, which allows only a few requests per hour.
+COLLEGE_SCORECARD_API_KEY = env("COLLEGE_SCORECARD_API_KEY", "")
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

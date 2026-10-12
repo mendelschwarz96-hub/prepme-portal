@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Import universities · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'university_list' %}">← Universities</a></p>
+<h1>Import universities from CSV</h1>
+
+{% if not preview %}
+<div class="card">
+  <p>Use this for UK and European universities, or to fill in international details (aid policy, English minimums) for many schools at once.</p>
+  <ul>
+    <li><a href="{% url 'university_import_template' %}">Download the template</a>. <strong>name</strong> and <strong>country</strong> are required; every other column is optional.</li>
+    <li>Rows match existing universities by name and country. Blank cells keep the current value.</li>
+    <li>Percent columns take percentages: <code>12.5</code> means 12.5%.</li>
+    <li>Choice columns use these codes: application_system <code>common_app / ucas / direct</code>; intl_aid_policy <code>need_blind / need_aware / no_need_aid</code>; merit_aid <code>yes / limited / no</code>; test_policy <code>required / recommended / considered / neither</code>.</li>
+    <li>Figures from the College Scorecard can't be overwritten by CSV.</li>
+  </ul>
+  <form method="post" enctype="multipart/form-data" class="stacked">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div><label for="id_file">CSV file</label><input type="file" name="file" id="id_file" accept=".csv,text/csv"></div>
+    <div class="form-actions"><button class="btn" type="submit">Preview</button></div>
+  </form>
+</div>
+{% else %}
+<div class="card">
+  <h2>Preview</h2>
+  {% for p in problems %}<p class="notice">{{ p }}</p>{% endfor %}
+  <p>{{ valid_count }} of {{ rows|length }} row{{ rows|length|pluralize }} ready to import. Nothing has been saved yet.</p>
+  <ul class="rows">
+    {% for r in rows %}
+    <li>
+      <div class="row-main">
+        <div class="title">Row {{ r.number }}: {{ r.data.name|default:"(no name)" }} <span class="subtle">{{ r.data.country }}</span></div>
+        {% if r.ok %}
+          <div class="subtle">{% if r.action == "create" %}Will be added{% else %}Will be updated{% endif %}{% if r.ignored %} · ignored Scorecard fields: {{ r.ignored|join:", " }}{% endif %}</div>
+        {% else %}
+          <ul class="errorlist">{% for e in r.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+      {% if r.ok %}<span class="chip ok">{{ r.action }}</span>{% else %}<span class="chip danger">error</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <form method="post" class="form-actions">
+    {% csrf_token %}
+    <input type="hidden" name="content" value="{{ content }}">
+    <input type="hidden" name="confirm" value="1">
+    {% if valid_count %}<button class="btn" type="submit">Import {{ valid_count }} row{{ valid_count|pluralize }}</button>{% endif %}
+    <a class="btn secondary" href="{% url 'university_import' %}">Choose another file</a>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

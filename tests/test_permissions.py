@@ -38,7 +38,7 @@ def test_anonymous_cannot_view_student(client, student):
 
 # ------------------------------------------------------------- counselor-only pages
 
-@pytest.mark.parametrize("name", ["dashboard", "student_list", "student_create", "university_list", "university_create", "audit_log"])
+@pytest.mark.parametrize("name", ["dashboard", "student_list", "student_create", "university_create", "audit_log"])
 @pytest.mark.parametrize("who", ["student_user", "parent_user"])
 def test_counselor_pages_forbidden_to_others(client, request, name, who, student):
     login(client, request.getfixturevalue(who))

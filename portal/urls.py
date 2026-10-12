@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_essays
+from . import views, views_essays, views_universities
 
 urlpatterns = [
     path("students/<int:pk>/summary/", views.student_summary, name="student_summary"),
@@ -52,10 +52,17 @@ urlpatterns = [
     path("tasks/<int:pk>/edit/", views.task_edit, name="task_edit"),
     path("tasks/<int:pk>/reset-date/", views.task_reset_date, name="task_reset_date"),
     path("tasks/<int:pk>/delete/", views.task_delete, name="task_delete"),
-    path("universities/", views.university_list, name="university_list"),
-    path("universities/new/", views.university_form, name="university_create"),
-    path("universities/<int:pk>/", views.university_detail, name="university_detail"),
-    path("universities/<int:pk>/edit/", views.university_form, name="university_edit"),
+    path("universities/", views_universities.university_list, name="university_list"),
+    path("universities/new/", views_universities.university_form, name="university_create"),
+    path("universities/compare/", views_universities.university_compare, name="university_compare"),
+    path("universities/import/", views_universities.university_import, name="university_import"),
+    path("universities/import/template.csv", views_universities.university_import_template, name="university_import_template"),
+    path("universities/scorecard/", views_universities.scorecard_search, name="scorecard_search"),
+    path("universities/scorecard/add/", views_universities.scorecard_add, name="scorecard_add"),
+    path("universities/scorecard/refresh/", views_universities.scorecard_refresh, name="scorecard_refresh_all"),
+    path("universities/<int:pk>/", views_universities.university_detail, name="university_detail"),
+    path("universities/<int:pk>/edit/", views_universities.university_form, name="university_edit"),
+    path("universities/<int:pk>/refresh/", views_universities.scorecard_refresh, name="scorecard_refresh"),
     path("universities/<int:pk>/deadlines/add/", views.deadline_form, name="deadline_add"),
     path("universities/<int:pk>/deadlines/<int:deadline_pk>/", views.deadline_form, name="deadline_edit"),
     path("universities/<int:pk>/deadlines/<int:deadline_pk>/delete/", views.deadline_delete, name="deadline_delete"),

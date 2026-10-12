@@ -7,3 +7,4 @@ staticfiles/
 .pytest_cache/
 Logo HR.pdf
 db.sqlite3.bak
+*.bak

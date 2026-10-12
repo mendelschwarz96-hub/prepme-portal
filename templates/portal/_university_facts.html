@@ -1,0 +1,21 @@
+{% load portal_tags %}
+<dl class="facts">
+  <dt>Admit rate</dt><dd>{{ u.admit_rate|pct }}</dd>
+  <dt>International admit rate</dt><dd>{{ u.intl_admit_rate|pct }}</dd>
+  <dt>SAT middle 50%</dt><dd>{{ u.sat_25|score_range:u.sat_75 }}{% if u.from_scorecard and u.sat_25 %} <span class="subtle">(approx.)</span>{% endif %}</dd>
+  <dt>ACT middle 50%</dt><dd>{{ u.act_25|score_range:u.act_75 }}</dd>
+  <dt>SAT/ACT policy</dt><dd>{{ u.get_test_policy_display|default:"—" }}</dd>
+  <dt>Cost of attendance</dt><dd>{{ u.cost_of_attendance|money:u.cost_currency }}{% if u.cost_of_attendance %}/yr{% endif %}</dd>
+  <dt>Tuition</dt><dd>{{ u.tuition|money:u.cost_currency }}{% if u.tuition %}/yr{% endif %}</dd>
+  <dt>Need-based aid (intl)</dt><dd>{{ u.get_intl_aid_policy_display|default:"—" }}</dd>
+  <dt>Merit aid (intl)</dt><dd>{{ u.get_merit_aid_display|default:"—" }}</dd>
+  <dt>TOEFL minimum</dt><dd>{{ u.toefl_min|default:"—" }}</dd>
+  <dt>IELTS minimum</dt><dd>{{ u.ielts_min|default:"—" }}</dd>
+  <dt>Duolingo minimum</dt><dd>{{ u.duolingo_min|default:"—" }}</dd>
+  {% if u.english_notes %}<dt>English notes</dt><dd>{{ u.english_notes }}</dd>{% endif %}
+  <dt>Undergraduates</dt><dd>{{ u.undergrad_size|num }}</dd>
+  <dt>International students</dt><dd>{{ u.intl_student_share|pct }}</dd>
+  <dt>Graduation rate</dt><dd>{{ u.grad_rate|pct }}</dd>
+  <dt>Median earnings (10 yrs)</dt><dd>{{ u.median_earnings|money:"USD" }}</dd>
+  <dt>Type</dt><dd>{{ u.get_ownership_display|default:"—" }}</dd>
+</dl>

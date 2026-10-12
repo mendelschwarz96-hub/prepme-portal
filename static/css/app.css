@@ -180,3 +180,18 @@ table.log th, table.log td { text-align: left; padding: .4rem .5rem; border-top:
 .stat-alert .stat-value { color: var(--danger); }
 progress { width: 100%; height: .5rem; accent-color: var(--brand); }
 .note-body { overflow-wrap: anywhere; }
+
+/* Universities */
+.filters summary { cursor: pointer; }
+.filter-grid { display: grid; gap: .75rem 1rem; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); margin-top: .75rem; align-items: end; }
+.filter-grid label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: .2rem; }
+.filter-grid .check-inline { display: flex; gap: .5rem; align-items: center; font-weight: 600; }
+.filter-grid .form-actions { grid-column: 1 / -1; margin-top: 0; }
+.compare-check { flex: none; }
+.source { margin-top: .75rem; font-size: .85rem; }
+table.compare { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: .92rem; }
+table.compare th, table.compare td { text-align: left; padding: .5rem .6rem; border-top: 1px solid var(--border); vertical-align: top; }
+table.compare thead th { border-top: 0; font-family: var(--serif); }
+table.compare tbody th { color: var(--muted); font-weight: 600; }
+table.compare th:first-child { position: sticky; left: 0; background: var(--surface); min-width: 8.5rem; max-width: 10rem; }
+table.compare td, table.compare thead th { min-width: 9rem; }

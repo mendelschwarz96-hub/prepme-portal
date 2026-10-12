@@ -1,25 +1,67 @@
 {% extends "base.html" %}
+{% load portal_tags %}
 {% block title %}Universities · PrepMe Portal{% endblock %}
 {% block content %}
 <div class="page-head">
-  <h1>Universities</h1>
-  <a class="btn" href="{% url 'university_create' %}">New university</a>
+  <div>
+    <h1>Universities</h1>
+    <p class="subtle">U.S. data from the official <abbr title="U.S. Department of Education">College Scorecard</abbr>; international details from your counselor.</p>
+  </div>
+  {% if user.is_counselor %}
+  <div class="row-actions">
+    <a class="btn" href="{% url 'scorecard_search' %}">Add from College Scorecard</a>
+    <a class="btn secondary" href="{% url 'university_create' %}">Add by hand</a>
+    <a class="btn secondary" href="{% url 'university_import' %}">Import CSV</a>
+  </div>
+  {% endif %}
 </div>
-<form method="get" class="search">
-  <input type="text" name="q" value="{{ q }}" placeholder="Search by name" aria-label="Search by name">
-  <button class="btn secondary" type="submit">Search</button>
+
+<details class="card filters" {% if filtered %}open{% endif %}>
+  <summary><strong>Filter</strong>{% if filtered %} <span class="chip">on</span>{% endif %}</summary>
+  <form method="get" class="filter-grid">
+    {% for field in form %}
+      {% if field.field.widget.input_type == "checkbox" %}
+      <label class="check-inline">{{ field }} {{ field.label }}</label>
+      {% else %}
+      <div><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}{{ field.errors }}</div>
+      {% endif %}
+    {% endfor %}
+    <div class="form-actions"><button class="btn" type="submit">Apply</button><a class="btn secondary" href="{% url 'university_list' %}">Clear</a></div>
+  </form>
+</details>
+
+<form method="get" action="{% url 'university_compare' %}" id="compare-form">
+  <div class="card">
+    <div class="card-head">
+      <span class="subtle">{{ page.paginator.count }} universit{{ page.paginator.count|pluralize:"y,ies" }}</span>
+      <button class="btn small secondary" type="submit">Compare selected (up to {{ compare_max }})</button>
+    </div>
+    <ul class="rows">
+      {% for u in page %}
+      <li>
+        <label class="check-row compare-check" title="Select to compare">
+          <input type="checkbox" name="id" value="{{ u.pk }}" aria-label="Compare {{ u.name }}">
+        </label>
+        <div class="row-main">
+          <div class="title"><a href="{% url 'university_detail' u.pk %}">{{ u.name }}</a></div>
+          <div class="subtle">{% if u.state %}{{ u.state }}, {% endif %}{{ u.country }} · {{ u.get_application_system_display }}
+            · admit {{ u.admit_rate|pct }}
+            {% if u.sat_25 %} · SAT {{ u.sat_25|score_range:u.sat_75 }}{% endif %}
+            {% if u.cost_of_attendance %} · {{ u.cost_of_attendance|money:u.cost_currency }}/yr{% elif u.tuition %} · tuition {{ u.tuition|money:u.cost_currency }}/yr{% endif %}
+          </div>
+        </div>
+        <div class="row-actions">
+          {% if u.intl_aid_policy == 'need_blind' %}<span class="chip ok">Need-blind intl</span>{% elif u.intl_aid_policy == 'need_aware' %}<span class="chip">Need-aware intl</span>{% endif %}
+          {% if u.merit_aid == 'yes' or u.merit_aid == 'limited' %}<span class="chip">Merit aid</span>{% endif %}
+          {% if user.is_counselor %}<span class="subtle">{{ u.deadline_count }} deadline{{ u.deadline_count|pluralize }}</span>{% endif %}
+        </div>
+      </li>
+      {% empty %}<li class="empty">No universities match.</li>{% endfor %}
+    </ul>
+  </div>
 </form>
-<div class="card">
-  <ul class="rows">
-    {% for u in universities %}
-    <li>
-      <div class="row-main">
-        <div class="title"><a href="{% url 'university_detail' u.pk %}">{{ u.name }}</a></div>
-        <div class="subtle">{{ u.country }} · {{ u.get_application_system_display }}</div>
-      </div>
-      <span class="subtle">{{ u.deadline_count }} deadline{{ u.deadline_count|pluralize }}</span>
-    </li>
-    {% empty %}<li class="empty">No universities yet.</li>{% endfor %}
-  </ul>
+<div class="pagination">
+  {% if page.has_previous %}<a href="?{{ query }}&page={{ page.previous_page_number }}">← Previous</a>{% endif %}
+  {% if page.has_next %}<a href="?{{ query }}&page={{ page.next_page_number }}">Next →</a>{% endif %}
 </div>
 {% endblock %}

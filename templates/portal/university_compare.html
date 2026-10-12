@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load portal_tags %}
+{% block title %}Compare universities · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'university_list' %}">← Universities</a></p>
+<h1>Compare</h1>
+<div class="card table-wrap">
+  <table class="compare">
+    <thead>
+      <tr><th scope="col"><span class="sr-only">Field</span></th>
+        {% for u in universities %}<th scope="col"><a href="{% url 'university_detail' u.pk %}">{{ u.name }}</a><br><span class="subtle">{{ u.country }} · {{ u.get_application_system_display }}</span></th>{% endfor %}</tr>
+    </thead>
+    <tbody>
+      <tr><th scope="row">Admit rate</th>{% for u in universities %}<td>{{ u.admit_rate|pct }}</td>{% endfor %}</tr>
+      <tr><th scope="row">International admit rate</th>{% for u in universities %}<td>{{ u.intl_admit_rate|pct }}</td>{% endfor %}</tr>
+      <tr><th scope="row">SAT middle 50%</th>{% for u in universities %}<td>{{ u.sat_25|score_range:u.sat_75 }}</td>{% endfor %}</tr>
+      <tr><th scope="row">ACT middle 50%</th>{% for u in universities %}<td>{{ u.act_25|score_range:u.act_75 }}</td>{% endfor %}</tr>
+      <tr><th scope="row">SAT/ACT policy</th>{% for u in universities %}<td>{{ u.get_test_policy_display|default:"—" }}</td>{% endfor %}</tr>
+      <tr><th scope="row">Cost of attendance / yr</th>{% for u in universities %}<td>{{ u.cost_of_attendance|money:u.cost_currency }}</td>{% endfor %}</tr>
+      <tr><th scope="row">Tuition / yr</th>{% for u in universities %}<td>{{ u.tuition|money:u.cost_currency }}</td>{% endfor %}</tr>
+      <tr><th scope="row">Need-based aid (intl)</th>{% for u in universities %}<td>{{ u.get_intl_aid_policy_display|default:"—" }}</td>{% endfor %}</tr>
+      <tr><th scope="row">Merit aid (intl)</th>{% for u in universities %}<td>{{ u.get_merit_aid_display|default:"—" }}</td>{% endfor %}</tr>
+      <tr><th scope="row">TOEFL / IELTS / Duolingo min.</th>{% for u in universities %}<td>{{ u.toefl_min|default:"—" }} / {{ u.ielts_min|default:"—" }} / {{ u.duolingo_min|default:"—" }}</td>{% endfor %}</tr>
+      <tr><th scope="row">Undergraduates</th>{% for u in universities %}<td>{{ u.undergrad_size|num }}</td>{% endfor %}</tr>
+      <tr><th scope="row">International students</th>{% for u in universities %}<td>{{ u.intl_student_share|pct }}</td>{% endfor %}</tr>
+      <tr><th scope="row">Graduation rate</th>{% for u in universities %}<td>{{ u.grad_rate|pct }}</td>{% endfor %}</tr>
+      <tr><th scope="row">Median earnings (10 yrs)</th>{% for u in universities %}<td>{{ u.median_earnings|money:"USD" }}</td>{% endfor %}</tr>
+    </tbody>
+  </table>
+</div>
+<p class="subtle">Costs are shown in each school's own currency. U.S. figures come from the College Scorecard and can lag a year or two.</p>
+{% endblock %}

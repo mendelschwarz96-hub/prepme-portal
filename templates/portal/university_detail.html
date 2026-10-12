@@ -6,18 +6,39 @@
 <div class="page-head">
   <div>
     <h1>{{ university }}</h1>
-    <p class="subtle">{% if university.city %}{{ university.city }}, {% endif %}{{ university.country }} · {{ university.get_application_system_display }}{% if university.oxbridge %} · Oxford/Cambridge{% endif %}
+    <p class="subtle">{% if university.city %}{{ university.city }}, {% endif %}{% if university.state %}{{ university.state }}, {% endif %}{{ university.country }} · {{ university.get_application_system_display }}{% if university.oxbridge %} · Oxford/Cambridge{% endif %}
       {% if university.website %} · <a href="{{ university.website }}" target="_blank" rel="noopener noreferrer">Website</a>{% endif %}</p>
   </div>
-  <a class="btn secondary" href="{% url 'university_edit' university.pk %}">Edit</a>
+  {% if user.is_counselor %}
+  <div class="row-actions">
+    <a class="btn secondary" href="{% url 'university_edit' university.pk %}">Edit</a>
+    {% if university.from_scorecard %}
+    <form method="post" action="{% url 'scorecard_refresh' university.pk %}" class="inline-form">{% csrf_token %}<button class="btn secondary" type="submit">Refresh data</button></form>
+    {% endif %}
+  </div>
+  {% endif %}
 </div>
+
+{% if my_application %}<p class="notice">This school is on your list: <a href="{% url 'application_detail' my_application.pk %}">{{ my_application.get_round_display }} {{ my_application.entry_year }}</a> ({{ my_application.get_status_display|lower }}).</p>{% endif %}
+
+<section class="card">
+  <h2>Profile</h2>
+  {% include "portal/_university_facts.html" with u=university %}
+  <p class="subtle source">
+    {% if university.from_scorecard %}
+      Admissions, test, cost and outcome figures: U.S. Department of Education College Scorecard{% if university.scorecard_synced_at %}, retrieved {{ university.scorecard_synced_at|date:"M j, Y" }}{% endif %}.
+      Scorecard figures can lag a year or two behind the school's own website, so check before deciding.
+    {% endif %}
+    International aid, English requirements and international admit rate: entered by your counselor{% if university.profile_updated_at %}, last updated {{ university.profile_updated_at|date:"M j, Y" }}{% endif %}.
+  </p>
+</section>
 
 <section class="card">
   <div class="card-head">
     <h2>Deadlines</h2>
-    <a class="btn small" href="{% url 'deadline_add' university.pk %}">Add deadline</a>
+    {% if user.is_counselor %}<a class="btn small" href="{% url 'deadline_add' university.pk %}">Add deadline</a>{% endif %}
   </div>
-  <p class="subtle">Each deadline becomes a task for every student with this school on their list for that entry year (and round, if set).</p>
+  {% if user.is_counselor %}<p class="subtle">Each deadline becomes a task for every student with this school on their list for that entry year (and round, if set).</p>{% endif %}
   <ul class="rows">
     {% for d in deadlines %}
     <li>
@@ -25,15 +46,18 @@
         <div class="title">{{ d.title|default:d.get_kind_display }}</div>
         <div class="subtle">{{ d.due_date|date:"D, M j, Y" }} · {{ d.entry_year }} entry · {% if d.round %}{{ d.get_round_display }}{% else %}All rounds{% endif %}</div>
       </div>
+      {% if user.is_counselor %}
       <div class="row-actions">
         <a class="btn small secondary" href="{% url 'deadline_edit' university.pk d.pk %}">Edit</a>
         <a class="btn small secondary" href="{% url 'deadline_delete' university.pk d.pk %}">Delete</a>
       </div>
+      {% endif %}
     </li>
     {% empty %}<li class="empty">No deadlines yet.</li>{% endfor %}
   </ul>
 </section>
 
+{% if user.is_counselor %}
 <section class="card">
   <h2>Students with this school</h2>
   <ul class="rows">
@@ -45,4 +69,5 @@
     {% empty %}<li class="empty">None yet.</li>{% endfor %}
   </ul>
 </section>
+{% endif %}
 {% endblock %}

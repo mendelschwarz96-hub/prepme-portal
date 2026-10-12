@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load portal_tags %}
+{% block title %}Add from College Scorecard · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'university_list' %}">← Universities</a></p>
+<div class="page-head">
+  <div>
+    <h1>Add from College Scorecard</h1>
+    <p class="subtle">Official U.S. Department of Education data for bachelor's-granting U.S. colleges. UK and European universities aren't included; add those by hand or by CSV.</p>
+  </div>
+  <form method="post" action="{% url 'scorecard_refresh_all' %}" class="inline-form">{% csrf_token %}
+    <button class="btn secondary" type="submit">Refresh all linked schools</button>
+  </form>
+</div>
+<form method="get" class="search">
+  <input type="text" name="q" value="{{ q }}" placeholder="College name, e.g. Boston University" aria-label="College name" autofocus>
+  <button class="btn" type="submit">Search</button>
+</form>
+{% if error %}<p class="notice">{{ error }}</p>{% endif %}
+{% if q and not error %}
+<div class="card">
+  <ul class="rows">
+    {% for r in results %}
+    <li>
+      <div class="row-main">
+        <div class="title">{{ r.name }}</div>
+        <div class="subtle">{{ r.city }}{% if r.state %}, {{ r.state }}{% endif %} · admit {{ r.admit_rate|pct }}{% if r.size %} · {{ r.size|num }} undergraduates{% endif %}</div>
+      </div>
+      {% if r.university_pk %}
+        <a class="btn small secondary" href="{% url 'university_detail' r.university_pk %}">Already added</a>
+      {% else %}
+      <form method="post" action="{% url 'scorecard_add' %}" class="inline-form">{% csrf_token %}
+        <input type="hidden" name="scorecard_id" value="{{ r.id }}"><input type="hidden" name="q" value="{{ q }}">
+        <button class="btn small" type="submit">Add</button>
+      </form>
+      {% endif %}
+    </li>
+    {% empty %}<li class="empty">No matches. Try a shorter name (at least 3 letters).</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}
