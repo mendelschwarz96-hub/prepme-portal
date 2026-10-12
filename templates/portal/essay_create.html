@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}New essay · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'student_detail' student.pk %}">← {{ student }}</a></p>
+<div class="card">
+  <h1>New essay</h1>
+  <form method="post" class="stacked" novalidate>
+    {% csrf_token %}
+    {{ form.as_div }}
+    <div class="form-actions">
+      <button type="submit" class="btn">Create and start writing</button>
+      <a class="btn secondary" href="{% url 'student_detail' student.pk %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% if prompts %}
+<section class="card">
+  <h2>Prompts for {{ student.first_name }}'s schools</h2>
+  <ul class="rows">
+    {% for p in prompts %}
+    <li>
+      <div class="row-main">
+        <div class="title">{{ p }}</div>
+        <div class="prompt-text">{{ p.text|linebreaksbr }}</div>
+        <div class="subtle">{% if p.word_limit %}{{ p.word_limit }} words max{% endif %}{% if p.char_limit %} {{ p.char_limit }} characters max{% endif %}{% if not p.required %} · optional{% endif %}</div>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

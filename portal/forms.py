@@ -7,8 +7,12 @@ from accounts.models import User
 
 from .models import (
     AcademicRecord,
+    Application,
     DeadlineTemplate,
     DocumentItem,
+    Essay,
+    EssayPrompt,
+    MeetingNote,
     Round,
     School,
     StudentProfile,
@@ -153,6 +157,104 @@ class DocumentForm(forms.ModelForm):
     class Meta:
         model = DocumentItem
         fields = ["doc_type", "label", "status", "link"]
+
+
+class EssayPromptForm(forms.ModelForm):
+    class Meta:
+        model = EssayPrompt
+        fields = ["university", "application_system", "entry_year", "title", "text", "word_limit", "char_limit", "required"]
+        widgets = {"text": forms.Textarea(attrs={"rows": 5})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["application_system"].choices = [("", "—")] + list(University.System.choices)
+        if not self.instance.pk:
+            self.fields["entry_year"].initial = date.today().year + 1
+
+
+def prompts_for_student(student):
+    """Prompts for the schools on the student's list, plus general prompts for their application systems."""
+    listed = student.applications.filter(status__in=Application.LISTED).select_related("university")
+    years = {a.entry_year for a in listed} or {student.graduation_year}
+    systems = {a.university.application_system for a in listed}
+    universities = {a.university_id for a in listed}
+    return (
+        EssayPrompt.objects.filter(entry_year__in=years)
+        .filter(Q(university_id__in=universities) | Q(university__isnull=True, application_system__in=systems))
+        .select_related("university")
+    )
+
+
+class EssayCreateForm(forms.ModelForm):
+    class Meta:
+        model = Essay
+        fields = ["prompt", "application", "title"]
+
+    def __init__(self, *args, student, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.student = student
+        self.fields["prompt"].queryset = prompts_for_student(student)
+        self.fields["prompt"].required = False
+        self.fields["prompt"].empty_label = "No prompt / other essay"
+        self.fields["application"].queryset = student.applications.filter(
+            status__in=Application.LISTED
+        ).select_related("university")
+        self.fields["application"].label = "School"
+        self.fields["title"].required = False
+        self.fields["title"].help_text = "Leave blank to use the prompt's title."
+
+    def clean(self):
+        cleaned = super().clean()
+        prompt, application = cleaned.get("prompt"), cleaned.get("application")
+        if not cleaned.get("title"):
+            if not prompt:
+                self.add_error("title", "Give the essay a title or choose a prompt.")
+            else:
+                cleaned["title"] = prompt.title
+                self.instance.title = prompt.title
+        if prompt and prompt.university_id and not application:
+            match = self.fields["application"].queryset.filter(university_id=prompt.university_id).first()
+            cleaned["application"] = match
+            self.instance.application = match
+        return cleaned
+
+
+class EssayEditForm(forms.Form):
+    body = forms.CharField(
+        label="Essay", required=False, strip=False,
+        widget=forms.Textarea(attrs={"rows": 18, "class": "essay-editor", "spellcheck": "true"}),
+    )
+    note = forms.CharField(label="What changed? (optional)", max_length=120, required=False)
+    base_number = forms.IntegerField(widget=forms.HiddenInput, required=False)
+
+
+class EssayStatusForm(forms.ModelForm):
+    class Meta:
+        model = Essay
+        fields = ["status"]
+
+
+class CommentForm(forms.Form):
+    body = forms.CharField(label="Comment", widget=forms.Textarea(attrs={"rows": 3}), max_length=4000)
+    start = forms.IntegerField(widget=forms.HiddenInput, required=False, min_value=0)
+    end = forms.IntegerField(widget=forms.HiddenInput, required=False, min_value=0)
+    quote = forms.CharField(widget=forms.HiddenInput, required=False, strip=False, max_length=2000)
+
+
+class MeetingNoteForm(forms.ModelForm):
+    class Meta:
+        model = MeetingNote
+        fields = ["met_on", "title", "body", "shared_with_student"]
+        widgets = {
+            "met_on": DateInput(),
+            "title": forms.TextInput(),
+            "body": forms.Textarea(attrs={"rows": 10}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            self.fields["met_on"].initial = date.today()
 
 
 class InviteForm(forms.Form):

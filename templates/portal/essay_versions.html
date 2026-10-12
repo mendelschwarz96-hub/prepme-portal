@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}History: {{ essay.title }} · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'essay_detail' essay.pk %}">← {{ essay.title }}</a></p>
+<h1>Version history</h1>
+<div class="card">
+  <ul class="rows">
+    {% for v in versions %}
+    <li>
+      <div class="row-main">
+        <div class="title"><a href="{% url 'essay_version' essay.pk v.number %}">Version {{ v.number }}</a>{% if forloop.first %} <span class="chip ok">Latest</span>{% endif %}</div>
+        <div class="subtle">{{ v.created_at|date:"M j, Y H:i" }}{% if v.created_by %} · {{ v.created_by.first_name|default:v.created_by }}{% endif %} · {{ v.word_count }} words{% if v.note %} · {{ v.note }}{% endif %}</div>
+      </div>
+      <a class="btn small secondary" href="{% url 'essay_version' essay.pk v.number %}">View changes</a>
+    </li>
+    {% empty %}<li class="empty">No versions yet.</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

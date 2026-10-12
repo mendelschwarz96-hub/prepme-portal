@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load static portal_tags %}
+{% block title %}{{ essay.title }} · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'student_detail' student.pk %}">← {{ student }}</a></p>
+<div class="page-head">
+  <div>
+    <h1>{{ essay.title }}</h1>
+    <p class="subtle">
+      {% if essay.application %}{{ essay.application.university }} · {% endif %}
+      {% if version %}Version {{ version.number }} · {{ version.word_count }}{% if essay.word_limit %} / {{ essay.word_limit }}{% endif %} words
+        {% if essay.char_limit %} · {{ version.char_count }} / {{ essay.char_limit }} characters{% endif %}
+        · saved {{ version.created_at|date:"M j, H:i" }}{% if version.created_by %} by {{ version.created_by.first_name|default:version.created_by }}{% endif %}
+      {% else %}No draft yet{% endif %}
+    </p>
+  </div>
+  <div class="row-actions">
+    {% if can_edit %}<a class="btn" href="{% url 'essay_edit' essay.pk %}">{% if version %}Edit draft{% else %}Start writing{% endif %}</a>{% endif %}
+    {% if version %}<a class="btn secondary" href="{% url 'essay_versions' essay.pk %}">History</a>{% endif %}
+  </div>
+</div>
+
+{% if essay.prompt %}
+<details class="card prompt-box" {% if not version %}open{% endif %}>
+  <summary><strong>Prompt</strong>{% if essay.word_limit %} · {{ essay.word_limit }} words max{% endif %}{% if essay.char_limit %} · {{ essay.char_limit }} characters max{% endif %}</summary>
+  <p class="prompt-text">{{ essay.prompt.text|linebreaksbr }}</p>
+</details>
+{% endif %}
+
+{% if can_edit %}
+<form method="post" action="{% url 'essay_status' essay.pk %}" class="search">
+  {% csrf_token %}
+  <label for="id_status" class="subtle">Status</label>
+  {{ status_form.status }}
+  <button class="btn small secondary" type="submit">Update</button>
+</form>
+{% else %}
+<p><span class="chip {{ essay.status|chip_class }}">{{ essay.get_status_display }}</span></p>
+{% endif %}
+
+<div class="essay-layout">
+  <section class="card essay-paper">
+    {% if version %}
+      {% if can_edit %}<p class="subtle hint">Select any passage to comment on it.</p>{% endif %}
+      <div id="essay-text" class="essay-text">{{ highlighted }}</div>
+    {% else %}
+      <p class="empty">Nothing written yet.</p>
+    {% endif %}
+  </section>
+
+  <aside class="card" id="comments">
+    <h2>Comments</h2>
+    {% if can_edit and version %}
+    <form method="post" action="{% url 'comment_create' essay.pk %}" id="comment-form" class="stacked">
+      {% csrf_token %}
+      <div id="comment-anchor" class="anchor-box" hidden>
+        <span class="subtle">On:</span> <span id="comment-quote" class="quote"></span>
+        <button type="button" id="comment-clear" class="btn small secondary">Clear</button>
+      </div>
+      {{ comment_form.start }}{{ comment_form.end }}{{ comment_form.quote }}
+      <div><label for="id_body" class="sr-only">Comment</label>{{ comment_form.body }}</div>
+      <button type="submit" class="btn small">Add comment</button>
+    </form>
+    {% endif %}
+
+    <ul class="rows comments">
+      {% for c in open_comments %}{% include "portal/_comment.html" %}{% endfor %}
+      {% for c in earlier_comments %}{% include "portal/_comment.html" with earlier=True %}{% endfor %}
+    </ul>
+    {% if not open_comments and not earlier_comments %}<p class="empty">No open comments.</p>{% endif %}
+    {% if resolved_comments %}
+    <details>
+      <summary class="subtle">Resolved ({{ resolved_comments|length }})</summary>
+      <ul class="rows comments">{% for c in resolved_comments %}{% include "portal/_comment.html" %}{% endfor %}</ul>
+    </details>
+    {% endif %}
+  </aside>
+</div>
+
+{% if user.is_counselor %}<p><a class="subtle" href="{% url 'essay_delete' essay.pk %}">Delete this essay</a></p>{% endif %}
+<script src="{% static 'js/essay.js' %}" defer></script>
+{% endblock %}

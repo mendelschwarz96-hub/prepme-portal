@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ essay.title }} v{{ version.number }} · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'essay_versions' essay.pk %}">← Version history</a></p>
+<div class="page-head">
+  <div>
+    <h1>Version {{ version.number }}</h1>
+    <p class="subtle">{{ version.created_at|date:"M j, Y H:i" }}{% if version.created_by %} · {{ version.created_by.first_name|default:version.created_by }}{% endif %} · {{ version.word_count }} words{% if version.note %} · {{ version.note }}{% endif %}</p>
+  </div>
+  {% if can_edit and not is_latest %}
+  <form method="post" action="{% url 'essay_restore' essay.pk version.number %}" class="inline-form">{% csrf_token %}
+    <button class="btn secondary" type="submit">Restore this version</button>
+  </form>
+  {% endif %}
+</div>
+<section class="card">
+  <h2>{% if previous %}Changes since version {{ previous.number }}{% else %}First version{% endif %}</h2>
+  {% if previous %}<p class="subtle legend"><ins>added</ins> <del>removed</del></p>{% endif %}
+  <div class="essay-text diff">{{ comparison }}</div>
+</section>
+{% endblock %}

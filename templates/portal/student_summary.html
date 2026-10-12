@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load portal_tags %}
+{% block title %}{{ student }} · Progress · PrepMe Portal{% endblock %}
+{% block content %}
+{% if not user.is_parent %}<p class="subtle"><a href="{% url 'student_detail' student.pk %}">← Full record</a> · This is what parents see.</p>{% endif %}
+<div class="page-head">
+  <div>
+    <h1>{{ student.first_name }}'s progress</h1>
+    <p class="subtle">Class of {{ student.graduation_year }} · updated {{ today|date:"M j, Y" }}</p>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><span class="stat-value">{{ summary.schools|length }}</span><span class="stat-label">schools on the list</span></div>
+  <div class="stat"><span class="stat-value">{{ summary.tasks_done }}/{{ summary.tasks_total }}</span><span class="stat-label">tasks done</span>
+    {% if summary.tasks_total %}<progress max="{{ summary.tasks_total }}" value="{{ summary.tasks_done }}" aria-label="Tasks done"></progress>{% endif %}</div>
+  <div class="stat{% if summary.overdue %} stat-alert{% endif %}"><span class="stat-value">{{ summary.overdue }}</span><span class="stat-label">overdue</span></div>
+</div>
+
+<section class="card">
+  <h2>Coming up</h2>
+  <ul class="rows">
+    {% for t in summary.upcoming %}
+    <li><div class="row-main"><span class="title">{{ t.title }}</span></div><span class="subtle">{{ t.due_date|date:"D, M j" }}</span></li>
+    {% empty %}<li class="empty">Nothing scheduled.</li>{% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Schools</h2>
+  <ul class="rows">
+    {% for s in summary.schools %}
+    <li>
+      <div class="row-main">
+        <div class="title">{{ s.name }}</div>
+        <div class="subtle">{{ s.round }} · {{ s.entry_year }} entry · tasks {{ s.tasks_done }}/{{ s.tasks_total }} · documents {{ s.docs_done }}/{{ s.docs_total }}{% if s.next_due %} · next deadline {{ s.next_due|date:"M j" }}{% endif %}</div>
+      </div>
+      <span class="chip {{ s.status|chip_class }}">{{ s.status_label }}</span>
+    </li>
+    {% empty %}<li class="empty">No schools yet.</li>{% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Essays</h2>
+  <ul class="rows">
+    {% for e in summary.essays %}
+    <li>
+      <div class="row-main">
+        <div class="title">{{ e.title }}</div>
+        <div class="subtle">{% if e.school %}{{ e.school }} · {% endif %}{{ e.words }}{% if e.word_limit %} / {{ e.word_limit }}{% endif %} words · updated {{ e.updated|date:"M j" }}</div>
+      </div>
+      <span class="chip {{ e.status|chip_class }}">{{ e.status_label }}</span>
+    </li>
+    {% empty %}<li class="empty">No essays yet.</li>{% endfor %}
+  </ul>
+  <p class="subtle">Essay text stays private between {{ student.first_name }} and the counselor.</p>
+</section>
+{% endblock %}

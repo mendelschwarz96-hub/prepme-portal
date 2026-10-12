@@ -10,12 +10,15 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from accounts.models import User
-from portal import deadlines
+from portal import deadlines, essays
 from portal.models import (
     AcademicRecord,
     Curriculum,
     DeadlineKind,
     DeadlineTemplate,
+    Essay,
+    EssayPrompt,
+    MeetingNote,
     Round,
     School,
     StudentProfile,
@@ -56,8 +59,11 @@ class Command(BaseCommand):
             curriculum=Curriculum.IB, graduation_year=year, intended_major="Economics", gpa="8.9", gpa_scale="0-10",
         )
         ana.parents.add(parent_user)
+        pedro_user = User.objects.create_user(
+            "pedro@demo.test", DEMO_PASSWORD, first_name="Pedro", last_name="Lima", role=User.Role.STUDENT
+        )
         pedro = StudentProfile.objects.create(
-            first_name="Pedro", last_name="Lima", home_country="Brazil", school=school_b,
+            user=pedro_user, first_name="Pedro", last_name="Lima", home_country="Brazil", school=school_b,
             curriculum=Curriculum.BRAZIL, graduation_year=year, intended_major="Computer Science", gpa="9.2", gpa_scale="0-10",
         )
 
@@ -100,11 +106,48 @@ class Command(BaseCommand):
         deadlines.add_school(ana, sample_eu, year, Round.RD, student_user)  # pending approval
         deadlines.add_school(pedro, sample_b, year, Round.ED, counselor)
         deadlines.add_school(pedro, sample_a, year, Round.RD, counselor)
+        # Pedro has submitted a whole list for approval at once.
+        for uni, round_ in [(sample_eu, Round.RD), (sample_uk, Round.UCAS), (sample_ox, Round.UCAS)]:
+            deadlines.add_school(pedro, uni, year, round_, pedro_user)
+
+        # Phase 2: prompts, an essay with history and comments, meeting notes.
+        ps = EssayPrompt.objects.create(
+            application_system=University.System.COMMON_APP, entry_year=year, title="Personal statement",
+            text="Sample prompt: share a story about yourself that you think colleges should know.", word_limit=650,
+        )
+        EssayPrompt.objects.create(
+            university=sample_a, entry_year=year, title="Why Sample University?",
+            text="Sample prompt: why do you want to attend Sample University?", word_limit=250,
+        )
+        EssayPrompt.objects.create(
+            application_system=University.System.UCAS, entry_year=year, title="UCAS personal statement",
+            text="Sample prompt: why do you want to study this course?", char_limit=4000,
+        )
+        essay = Essay.objects.create(
+            student=ana, prompt=ps, title="Personal statement", status=Essay.Status.READY_FOR_REVIEW
+        )
+        essays.save_version(essay, "Every Sunday my grandmother cooked for twenty people.", student_user)
+        version, _, _ = essays.save_version(
+            essay,
+            "Every Sunday my grandmother cooked for twenty people, and I was her only assistant.\n\n"
+            "That kitchen taught me how to plan, how to improvise, and how to listen.",
+            student_user, note="Added second paragraph",
+        )
+        essays.add_comment(version, counselor, "Lovely image. Can you show one specific Sunday?", quote="her only assistant")
+        MeetingNote.objects.create(
+            student=ana, met_on=today - timedelta(days=7), title="Kickoff meeting", author=counselor,
+            body="Agreed on an early list. Ana will draft the personal statement this month.", shared_with_student=True,
+        )
+        MeetingNote.objects.create(
+            student=ana, met_on=today - timedelta(days=2), title="Counselor-only note", author=counselor,
+            body="Private planning note (not visible to Ana).",
+        )
 
         self.stdout.write(self.style.SUCCESS("Demo data loaded. Log in with any of these (password: %s):" % DEMO_PASSWORD))
         for email, role in [
             ("counselor@demo.test", "counselor"),
             ("ana@demo.test", "student"),
+            ("pedro@demo.test", "student (has a list waiting for approval)"),
             ("parent@demo.test", "parent of Ana"),
         ]:
             self.stdout.write(f"  {email:24} {role}")

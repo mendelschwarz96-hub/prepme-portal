@@ -85,9 +85,42 @@ def test_student_pages_render(client, student_user, student, world):
 
 def test_parent_pages_render(client, parent_user, student, world):
     client.force_login(parent_user)
-    assert client.get(reverse("home")).status_code == 302
-    assert client.get(reverse("student_detail", args=[student.pk])).status_code == 200
-    assert client.get(reverse("application_detail", args=[world["listed"].pk])).status_code == 200
+    assert client.get(reverse("home"))["Location"] == reverse("student_summary", args=[student.pk])
+    assert client.get(reverse("student_summary", args=[student.pk])).status_code == 200
+
+
+def test_phase2_pages_render(client, counselor, student_user, student, world):
+    from datetime import date
+
+    from portal import essays
+    from portal.models import Essay, EssayPrompt, MeetingNote
+
+    prompt = EssayPrompt.objects.create(university=world["uni"], entry_year=YEAR, title="Why us", text="Why?", word_limit=200)
+    essay = Essay.objects.create(student=student, title="Why us", prompt=prompt, application=world["listed"])
+    essays.save_version(essay, "Draft one.", student_user)
+    v2, _, _ = essays.save_version(essay, "Draft two is better.", counselor)
+    essays.add_comment(v2, counselor, "Good", quote="better")
+    note = MeetingNote.objects.create(student=student, met_on=date(2026, 9, 1), title="Kickoff", body="Notes")
+    pages = [
+        reverse("essay_create", args=[student.pk]),
+        reverse("essay_detail", args=[essay.pk]),
+        reverse("essay_edit", args=[essay.pk]),
+        reverse("essay_versions", args=[essay.pk]),
+        reverse("essay_version", args=[essay.pk, 1]),
+        reverse("essay_version", args=[essay.pk, 2]),
+        reverse("note_list", args=[student.pk]),
+        reverse("student_summary", args=[student.pk]),
+    ]
+    client.force_login(counselor)
+    for url in pages + [
+        reverse("prompt_list"), reverse("prompt_create"), reverse("prompt_edit", args=[prompt.pk]),
+        reverse("note_create", args=[student.pk]), reverse("note_edit", args=[student.pk, note.pk]),
+        reverse("essay_delete", args=[essay.pk]),
+    ]:
+        assert client.get(url).status_code == 200, url
+    client.force_login(student_user)
+    for url in pages:
+        assert client.get(url).status_code == 200, url
 
 
 def test_public_pages_render(client):

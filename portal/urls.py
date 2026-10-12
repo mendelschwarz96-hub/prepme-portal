@@ -1,8 +1,28 @@
 from django.urls import path
 
-from . import views
+from . import views, views_essays
 
 urlpatterns = [
+    path("students/<int:pk>/summary/", views.student_summary, name="student_summary"),
+    path("students/<int:pk>/essays/new/", views_essays.essay_create, name="essay_create"),
+    path("essays/<int:pk>/", views_essays.essay_detail, name="essay_detail"),
+    path("essays/<int:pk>/edit/", views_essays.essay_edit, name="essay_edit"),
+    path("essays/<int:pk>/status/", views_essays.essay_status, name="essay_status"),
+    path("essays/<int:pk>/versions/", views_essays.essay_versions, name="essay_versions"),
+    path("essays/<int:pk>/versions/<int:number>/", views_essays.essay_version_detail, name="essay_version"),
+    path("essays/<int:pk>/versions/<int:number>/restore/", views_essays.essay_restore, name="essay_restore"),
+    path("essays/<int:pk>/delete/", views_essays.essay_delete, name="essay_delete"),
+    path("essays/<int:pk>/comments/", views_essays.comment_create, name="comment_create"),
+    path("comments/<int:pk>/resolve/", views_essays.comment_resolve, name="comment_resolve"),
+    path("comments/<int:pk>/delete/", views_essays.comment_delete, name="comment_delete"),
+    path("prompts/", views_essays.prompt_list, name="prompt_list"),
+    path("prompts/new/", views_essays.prompt_form, name="prompt_create"),
+    path("prompts/<int:pk>/", views_essays.prompt_form, name="prompt_edit"),
+    path("prompts/<int:pk>/delete/", views_essays.prompt_delete, name="prompt_delete"),
+    path("students/<int:pk>/notes/", views_essays.note_list, name="note_list"),
+    path("students/<int:pk>/notes/new/", views_essays.note_form, name="note_create"),
+    path("students/<int:pk>/notes/<int:note_pk>/", views_essays.note_form, name="note_edit"),
+    path("students/<int:pk>/notes/<int:note_pk>/delete/", views_essays.note_delete, name="note_delete"),
     path("", views.home, name="home"),
     path("dashboard/", views.dashboard, name="dashboard"),
     path("students/", views.student_list, name="student_list"),

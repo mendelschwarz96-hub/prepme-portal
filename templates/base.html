@@ -22,6 +22,7 @@
         <a href="{% url 'dashboard' %}">This week{% if pending_approvals %} <span class="badge" title="Waiting for approval">{{ pending_approvals }}</span>{% endif %}</a>
         <a href="{% url 'student_list' %}">Students</a>
         <a href="{% url 'university_list' %}">Universities</a>
+        <a href="{% url 'prompt_list' %}">Prompts</a>
         <a href="{% url 'audit_log' %}">Audit log</a>
       {% else %}
         <a href="{% url 'home' %}">Home</a>

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Edit: {{ essay.title }} · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'essay_detail' essay.pk %}">← {{ essay.title }}</a></p>
+<h1>{{ essay.title }}</h1>
+{% if essay.prompt %}
+<details class="card prompt-box">
+  <summary><strong>Prompt</strong></summary>
+  <p class="prompt-text">{{ essay.prompt.text|linebreaksbr }}</p>
+</details>
+{% endif %}
+<form method="post" class="stacked">
+  {% csrf_token %}
+  {{ form.base_number }}
+  {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  <div>
+    <label for="id_body">Essay{% if latest %} <span class="subtle">(editing version {{ latest.number }})</span>{% endif %}</label>
+    <textarea name="body" id="id_body" rows="18" class="essay-editor" spellcheck="true"
+      {% if essay.word_limit %}data-word-limit="{{ essay.word_limit }}"{% endif %}
+      {% if essay.char_limit %}data-char-limit="{{ essay.char_limit }}"{% endif %}>
+{{ form.body.value|default:"" }}</textarea>
+    <span id="essay-count" class="helptext" aria-live="polite"></span>
+  </div>
+  <div><label for="id_note">What changed? <span class="subtle">(optional)</span></label>{{ form.note }}</div>
+  <div class="form-actions">
+    <button class="btn" type="submit" name="then" value="read">Save version</button>
+    <button class="btn secondary" type="submit" name="then" value="stay">Save and keep writing</button>
+    <a class="btn secondary" href="{% url 'essay_detail' essay.pk %}">Cancel</a>
+  </div>
+  <p class="subtle">Each save keeps a new version. Older versions are never lost.</p>
+</form>
+<script src="{% static 'js/essay.js' %}" defer></script>
+{% endblock %}

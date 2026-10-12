@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Meeting notes · {{ student }} · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'student_detail' student.pk %}">← {{ student }}</a></p>
+<div class="page-head">
+  <h1>Meeting notes</h1>
+  {% if user.is_counselor %}<a class="btn" href="{% url 'note_create' student.pk %}">New note</a>{% endif %}
+</div>
+{% for note in notes %}
+<article class="card" id="note-{{ note.pk }}">
+  <div class="card-head">
+    <h2>{{ note.title }}</h2>
+    {% if user.is_counselor %}
+    <div class="row-actions">
+      {% if note.shared_with_student %}<span class="chip">Shared with student</span>{% else %}<span class="chip muted">Private</span>{% endif %}
+      <a class="btn small secondary" href="{% url 'note_edit' student.pk note.pk %}">Edit</a>
+      <a class="btn small secondary" href="{% url 'note_delete' student.pk note.pk %}">Delete</a>
+    </div>
+    {% endif %}
+  </div>
+  <p class="subtle">{{ note.met_on|date:"D, M j, Y" }}{% if note.author %} · {{ note.author.first_name|default:note.author }}{% endif %}</p>
+  <div class="note-body">{{ note.body|linebreaks }}</div>
+</article>
+{% empty %}
+<p class="empty">No meeting notes yet.</p>
+{% endfor %}
+{% endblock %}

@@ -114,5 +114,44 @@
   {% endif %}
 </section>
 
-{% if user.is_counselor %}<p><a href="{% url 'audit_log' %}?student={{ student.pk }}">Who viewed or changed this record</a></p>{% endif %}
+<section class="card">
+  <div class="card-head">
+    <h2>Essays</h2>
+    {% if can_edit %}<a class="btn small secondary" href="{% url 'essay_create' student.pk %}">New essay</a>{% endif %}
+  </div>
+  <ul class="rows">
+    {% for e in essays %}
+    <li>
+      <div class="row-main">
+        <div class="title"><a href="{% url 'essay_detail' e.pk %}">{{ e.title }}</a></div>
+        <div class="subtle">{% if e.application %}{{ e.application.university }} · {% endif %}updated {{ e.updated_at|date:"M j" }}</div>
+      </div>
+      <span class="chip {{ e.status|chip_class }}">{{ e.get_status_display }}</span>
+    </li>
+    {% empty %}<li class="empty">No essays yet.</li>{% endfor %}
+  </ul>
+</section>
+
+{% if user.is_counselor or notes %}
+<section class="card">
+  <div class="card-head">
+    <h2>Meeting notes</h2>
+    <div class="row-actions">
+      {% if user.is_counselor %}<a class="btn small secondary" href="{% url 'note_create' student.pk %}">New note</a>{% endif %}
+      <a class="btn small secondary" href="{% url 'note_list' student.pk %}">All notes</a>
+    </div>
+  </div>
+  <ul class="rows">
+    {% for n in notes %}
+    <li><div class="row-main"><a class="title" href="{% url 'note_list' student.pk %}#note-{{ n.pk }}">{{ n.title }}</a> <span class="subtle">{{ n.met_on|date:"M j, Y" }}</span></div>
+      {% if user.is_counselor and not n.shared_with_student %}<span class="chip muted">Private</span>{% endif %}</li>
+    {% empty %}<li class="empty">No notes yet.</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<p class="subtle">
+  <a href="{% url 'student_summary' student.pk %}">Progress summary (parent view)</a>
+  {% if user.is_counselor %} · <a href="{% url 'audit_log' %}?student={{ student.pk }}">Who viewed or changed this record</a>{% endif %}
+</p>
 {% endblock %}

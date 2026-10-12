@@ -42,9 +42,12 @@ from .permissions import (
     get_application,
     get_document,
     get_student,
+    get_summary_student,
     get_task,
-    visible_students,
+    summary_students,
+    visible_notes,
 )
+from . import summary as progress_summary
 
 Action = audit.Action
 
@@ -85,10 +88,23 @@ def home(request):
     user = request.user
     if user.is_counselor:
         return redirect("dashboard")
-    students = list(visible_students(user))
+    students = list(summary_students(user))
+    target = "student_summary" if user.is_parent else "student_detail"
     if len(students) == 1:
-        return redirect("student_detail", pk=students[0].pk)
-    return render(request, "portal/choose_student.html", {"students": students})
+        return redirect(target, pk=students[0].pk)
+    return render(request, "portal/choose_student.html", {"students": students, "target": target})
+
+
+@login_required
+def student_summary(request, pk):
+    """Read-only progress summary. This is the parent view; counselor and student can open it too."""
+    student = get_summary_student(request.user, pk)
+    audit.log(request, Action.VIEW, student, detail="Progress summary")
+    return render(
+        request,
+        "portal/student_summary.html",
+        {"student": student, "summary": progress_summary.build(student), "today": timezone.localdate()},
+    )
 
 
 @login_required
@@ -168,6 +184,8 @@ def student_detail(request, pk):
         "test_scores": student.test_scores.all(),
         "academic_records": student.academic_records.all(),
         "parents": student.parents.all(),
+        "essays": student.essays.select_related("application__university", "prompt"),
+        "notes": visible_notes(request.user, student)[:5],
         "today": timezone.localdate(),
     }
     if request.user.is_counselor:

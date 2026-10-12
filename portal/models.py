@@ -390,3 +390,163 @@ class DocumentItem(models.Model):
     @property
     def audit_student(self):
         return self.application.student
+
+
+# ===================================================================== Phase 2: essays & notes
+
+def count_words(text):
+    return len(text.split()) if text else 0
+
+
+class EssayPrompt(models.Model):
+    """Prompt library. A prompt belongs to one university, or is general for an
+    application system (e.g. the Common App personal statement, the UCAS personal statement)."""
+
+    university = models.ForeignKey(
+        University, null=True, blank=True, on_delete=models.CASCADE, related_name="prompts",
+        help_text="Leave blank for a general prompt (e.g. Common App personal statement).",
+    )
+    application_system = models.CharField(
+        max_length=20, choices=University.System.choices, blank=True,
+        help_text="For general prompts only: which applications it is for.",
+    )
+    entry_year = models.PositiveSmallIntegerField()
+    title = models.CharField(max_length=150)
+    text = models.TextField("Prompt")
+    word_limit = models.PositiveIntegerField(null=True, blank=True)
+    char_limit = models.PositiveIntegerField("Character limit", null=True, blank=True)
+    required = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-entry_year", "university__name", "title"]
+
+    def __str__(self):
+        owner = self.university.name if self.university else self.get_application_system_display() or "General"
+        return f"{owner}: {self.title} ({self.entry_year})"
+
+    def clean(self):
+        if self.university_id and self.application_system:
+            raise ValidationError("Choose a university or an application system, not both.")
+        if not self.university_id and not self.application_system:
+            raise ValidationError("Choose the university this prompt belongs to, or an application system for a general prompt.")
+
+
+class Essay(models.Model):
+    class Status(models.TextChoices):
+        BRAINSTORMING = "brainstorming", "Brainstorming"
+        DRAFTING = "drafting", "Drafting"
+        READY_FOR_REVIEW = "ready_for_review", "Ready for review"
+        REVISING = "revising", "Revising"
+        FINAL = "final", "Final"
+        SUBMITTED = "submitted", "Submitted"
+
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name="essays")
+    prompt = models.ForeignKey(EssayPrompt, null=True, blank=True, on_delete=models.SET_NULL, related_name="essays")
+    application = models.ForeignKey(
+        Application, null=True, blank=True, on_delete=models.SET_NULL, related_name="essays",
+        help_text="Optional: the school this essay is for.",
+    )
+    title = models.CharField(max_length=150)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.BRAINSTORMING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def audit_student(self):
+        return self.student
+
+    @property
+    def latest_version(self):
+        return self.versions.order_by("-number").first()
+
+    @property
+    def word_limit(self):
+        return self.prompt.word_limit if self.prompt else None
+
+    @property
+    def char_limit(self):
+        return self.prompt.char_limit if self.prompt else None
+
+
+class EssayVersion(models.Model):
+    """Every save is a new version; versions are never edited, so history is complete."""
+
+    essay = models.ForeignKey(Essay, on_delete=models.CASCADE, related_name="versions")
+    number = models.PositiveIntegerField()
+    body = EncryptedTextField(blank=True)
+    word_count = models.PositiveIntegerField(default=0)
+    char_count = models.PositiveIntegerField(default=0)
+    note = models.CharField(max_length=120, blank=True, help_text="Optional: what changed in this version.")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-number"]
+        constraints = [models.UniqueConstraint(fields=["essay", "number"], name="unique_essay_version")]
+
+    def __str__(self):
+        return f"{self.essay} v{self.number}"
+
+    @property
+    def audit_student(self):
+        return self.essay.student
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:
+            raise ValueError("Essay versions cannot be changed; save a new version instead.")
+        self.word_count = count_words(self.body)
+        self.char_count = len(self.body or "")
+        super().save(*args, **kwargs)
+
+
+class EssayComment(models.Model):
+    """A comment on a version, optionally anchored to a passage (start/end are character offsets)."""
+
+    version = models.ForeignKey(EssayVersion, on_delete=models.CASCADE, related_name="comments")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
+    start = models.PositiveIntegerField(null=True, blank=True)
+    end = models.PositiveIntegerField(null=True, blank=True)
+    quote = EncryptedTextField(blank=True)
+    body = EncryptedTextField()
+    resolved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    @property
+    def audit_student(self):
+        return self.version.essay.student
+
+    @property
+    def is_anchored(self):
+        return self.start is not None and self.end is not None
+
+
+class MeetingNote(models.Model):
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name="meeting_notes")
+    met_on = models.DateField("Meeting date")
+    title = EncryptedTextField("Topic")
+    body = EncryptedTextField("Notes")
+    shared_with_student = models.BooleanField(
+        default=False, help_text="If checked, the student can read this note. Parents never see meeting notes."
+    )
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-met_on", "-created_at"]
+
+    def __str__(self):
+        return f"Meeting {self.met_on:%Y-%m-%d}"
+
+    @property
+    def audit_student(self):
+        return self.student

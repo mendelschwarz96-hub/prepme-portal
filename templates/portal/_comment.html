@@ -1,0 +1,18 @@
+<li id="c{{ c.pk }}" class="comment{% if c.resolved %} resolved{% endif %}">
+  <div class="row-main">
+    {% if c.quote %}<div class="quote">“{{ c.quote|truncatechars:200 }}”</div>{% endif %}
+    <div class="comment-body">{{ c.body|linebreaksbr }}</div>
+    <div class="subtle">{{ c.author.first_name|default:c.author|default:"—" }} · {{ c.created_at|date:"M j, H:i" }}{% if earlier %} · on version {{ c.version.number }}{% endif %}</div>
+  </div>
+  {% if can_edit %}
+  <div class="row-actions">
+    <form method="post" action="{% url 'comment_resolve' c.pk %}" class="inline-form">{% csrf_token %}
+      {% if c.resolved %}<input type="hidden" name="resolved" value="0"><button class="btn small secondary" type="submit">Reopen</button>
+      {% else %}<button class="btn small secondary" type="submit">Resolve</button>{% endif %}
+    </form>
+    {% if user.is_counselor or c.author_id == user.id %}
+    <form method="post" action="{% url 'comment_delete' c.pk %}" class="inline-form">{% csrf_token %}<button class="btn small secondary" type="submit" aria-label="Delete comment">Delete</button></form>
+    {% endif %}
+  </div>
+  {% endif %}
+</li>

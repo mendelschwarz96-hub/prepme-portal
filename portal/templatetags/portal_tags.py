@@ -19,6 +19,12 @@ CHIP_CLASSES = {
     "ready": "ok",
     "submitted": "ok",
     "not_needed": "muted",
+    # essays
+    "brainstorming": "muted",
+    "drafting": "",
+    "ready_for_review": "warn",
+    "revising": "warn",
+    "final": "ok",
 }
 
 

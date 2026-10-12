@@ -44,7 +44,7 @@ def test_test_score_range_validated(student):
 
 def test_viewing_a_student_is_audited(client, parent_user, student):
     client.force_login(parent_user)
-    client.get(reverse("student_detail", args=[student.pk]))
+    client.get(reverse("student_summary", args=[student.pk]))
     entry = AuditLog.objects.filter(action=AuditLog.Action.VIEW, student_id=student.pk).get()
     assert entry.user == parent_user
     assert entry.actor_email == parent_user.email

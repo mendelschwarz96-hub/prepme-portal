@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Essay prompts · PrepMe Portal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Essay prompts</h1>
+    <p class="subtle">Students see the prompts for the schools on their list, plus general prompts (Common App, UCAS) for their application systems.</p>
+  </div>
+  <a class="btn" href="{% url 'prompt_create' %}">New prompt</a>
+</div>
+{% if years %}
+<form method="get" class="search">
+  <select name="year" aria-label="Entry year">
+    <option value="">All years</option>
+    {% for y in years %}<option value="{{ y }}" {% if year == y|stringformat:"d" %}selected{% endif %}>{{ y }} entry</option>{% endfor %}
+  </select>
+  <button class="btn secondary" type="submit">Filter</button>
+</form>
+{% endif %}
+<div class="card">
+  <ul class="rows">
+    {% for p in prompts %}
+    <li>
+      <div class="row-main">
+        <div class="title">{{ p }}</div>
+        <div class="subtle">{{ p.text|truncatechars:160 }}</div>
+        <div class="subtle">{% if p.word_limit %}{{ p.word_limit }} words{% endif %}{% if p.char_limit %} {{ p.char_limit }} characters{% endif %}{% if not p.required %} · optional{% endif %}</div>
+      </div>
+      <div class="row-actions">
+        <a class="btn small secondary" href="{% url 'prompt_edit' p.pk %}">Edit</a>
+        <a class="btn small secondary" href="{% url 'prompt_delete' p.pk %}">Delete</a>
+      </div>
+    </li>
+    {% empty %}<li class="empty">No prompts yet.</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

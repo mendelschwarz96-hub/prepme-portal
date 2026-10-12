@@ -164,22 +164,27 @@ def test_student_cannot_invite(client, student_user, student):
 
 # ------------------------------------------------------------- parents (read-only)
 
-def test_parent_can_view_child(client, parent_user, student, app_listed):
+def test_parent_sees_progress_summary_only(client, parent_user, student, app_listed):
     login(client, parent_user)
-    assert client.get(reverse("student_detail", args=[student.pk])).status_code == 200
-    assert client.get(reverse("application_detail", args=[app_listed.pk])).status_code == 200
+    assert client.get(reverse("home"))["Location"] == reverse("student_summary", args=[student.pk])
+    assert client.get(reverse("student_summary", args=[student.pk])).status_code == 200
+    # The full record (grades, essays, notes) is not available to parents.
+    assert client.get(reverse("student_detail", args=[student.pk])).status_code == 404
+    assert client.get(reverse("application_detail", args=[app_listed.pk])).status_code == 404
+    assert client.get(reverse("note_list", args=[student.pk])).status_code == 404
 
 
 def test_parent_cannot_view_other_children(client, parent_user, other_student):
     login(client, parent_user)
-    assert client.get(reverse("student_detail", args=[other_student.pk])).status_code == 404
+    assert client.get(reverse("student_summary", args=[other_student.pk])).status_code == 404
 
 
-def test_parent_page_has_no_edit_controls(client, parent_user, student, app_listed):
+def test_parent_summary_has_no_edit_controls(client, parent_user, student, app_listed):
     login(client, parent_user)
-    html = client.get(reverse("student_detail", args=[student.pk])).content.decode()
-    assert "Edit profile" not in html
+    html = client.get(reverse("student_summary", args=[student.pk])).content.decode()
+    assert "Edit" not in html
     assert "Mark done" not in html
+    assert "<form" not in html.split("<main>")[1]
 
 
 def test_parent_cannot_change_anything(client, parent_user, student, app_listed, common_app_uni):
@@ -198,7 +203,7 @@ def test_parent_cannot_change_anything(client, parent_user, student, app_listed,
         (reverse("document_create", args=[app_listed.pk]), {"doc_type": "other", "status": "ready"}),
     ]
     for url, data in attempts:
-        assert client.post(url, data).status_code == 403, url
+        assert client.post(url, data).status_code in (403, 404), url
     task.refresh_from_db()
     doc.refresh_from_db()
     assert task.status == Task.Status.TODO
