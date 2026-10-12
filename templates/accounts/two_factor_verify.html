@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card auth-box">
+  <h1>Enter your code</h1>
+  <p class="subtle">Open your authenticator app and type the 6-digit code for PrepMe Portal. If you don't have your phone, use one of your backup codes.</p>
+  <form method="post" class="stacked">{% csrf_token %}{{ form.as_div }}
+    <div class="form-actions"><button class="btn" type="submit">Verify</button></div>
+  </form>
+</div>
+{% endblock %}

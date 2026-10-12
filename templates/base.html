@@ -1,0 +1,39 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}PrepMe Portal{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="{% url 'home' %}">PrepMe Portal</a>
+    {% if user.is_authenticated %}
+    <nav class="topnav" aria-label="Main">
+      {% if user.is_counselor %}
+        <a href="{% url 'dashboard' %}">This week{% if pending_approvals %} <span class="badge" title="Waiting for approval">{{ pending_approvals }}</span>{% endif %}</a>
+        <a href="{% url 'student_list' %}">Students</a>
+        <a href="{% url 'university_list' %}">Universities</a>
+        <a href="{% url 'audit_log' %}">Audit log</a>
+      {% else %}
+        <a href="{% url 'home' %}">Home</a>
+      {% endif %}
+      <a href="{% url 'password_change' %}">Password</a>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
+    </nav>
+    {% endif %}
+  </div>
+</header>
+<main>
+  {% if messages %}
+  <ul class="messages">
+    {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

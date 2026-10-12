@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}This week · PrepMe Portal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>This week</h1>
+    <p class="subtle">{{ today|date:"D, M j" }} – {{ week_end|date:"D, M j, Y" }}, all active students</p>
+  </div>
+  <a class="btn" href="{% url 'student_create' %}">New student</a>
+</div>
+
+{% if pending %}
+<section class="card">
+  <h2>Waiting for your approval</h2>
+  <ul class="rows">
+    {% for app in pending %}
+    <li>
+      <div class="row-main">
+        <div class="title"><a href="{% url 'application_detail' app.pk %}">{{ app.university }}</a> · {{ app.get_round_display }} {{ app.entry_year }}</div>
+        <div class="subtle"><a href="{% url 'student_detail' app.student_id %}">{{ app.student }}</a> wants to
+          {% if app.status == 'pending_add' %}add{% else %}remove{% endif %} this school</div>
+      </div>
+      <div class="row-actions">
+        <form method="post" action="{% url 'application_approve' app.pk %}" class="inline-form">{% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'dashboard' %}">
+          <button class="btn small" type="submit">Approve</button></form>
+        <form method="post" action="{% url 'application_decline' app.pk %}" class="inline-form">{% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'dashboard' %}">
+          <button class="btn small secondary" type="submit">Decline</button></form>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if overdue %}
+<section class="card">
+  <h2 class="overdue">Overdue ({{ overdue|length }})</h2>
+  <ul class="rows">
+    {% for task in overdue %}{% include "portal/_task_row.html" with show_student=True can_edit=True %}{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Due in the next 7 days ({{ this_week|length }})</h2>
+  {% if this_week %}
+  <ul class="rows">
+    {% for task in this_week %}{% include "portal/_task_row.html" with show_student=True can_edit=True %}{% endfor %}
+  </ul>
+  {% else %}<p class="empty">Nothing due this week.</p>{% endif %}
+</section>
+{% endblock %}

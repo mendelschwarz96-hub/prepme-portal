@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card auth-box">
+  <h1>Too many attempts</h1>
+  <p>This account is locked for one hour after too many failed logins. Try again later, or reset your password.</p>
+  <a class="btn secondary" href="{% url 'password_reset' %}">Reset password</a>
+</div>
+{% endblock %}

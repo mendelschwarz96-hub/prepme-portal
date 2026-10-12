@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Welcome, {{ user.first_name|default:user.email }}</h1>
+<div class="card">
+  {% if students %}
+  <ul class="rows">
+    {% for s in students %}<li><a class="title" href="{% url 'student_detail' s.pk %}">{{ s }}</a></li>{% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">Your account is not linked to a student yet. Please contact your counselor.</p>
+  {% endif %}
+</div>
+{% endblock %}

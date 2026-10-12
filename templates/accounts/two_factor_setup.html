@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card auth-box">
+  <h1>Set up two-factor login</h1>
+  <p>Your account can see every student's record, so it needs a second step at login.</p>
+  <ol>
+    <li>Install an authenticator app on your phone (Google Authenticator, Microsoft Authenticator or 1Password).</li>
+    <li>Scan this code with the app.</li>
+    <li>Type the 6-digit code the app shows.</li>
+  </ol>
+  <div class="qr">{{ qr_svg|safe }}</div>
+  <p class="subtle">Can't scan? Enter this key by hand: <span class="mono">{{ secret }}</span></p>
+  <form method="post" class="stacked">{% csrf_token %}{{ form.as_div }}
+    <div class="form-actions"><button class="btn" type="submit">Confirm</button></div>
+  </form>
+</div>
+{% endblock %}

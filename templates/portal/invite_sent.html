@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h1>Invite sent</h1>
+  <p>An email was sent to <strong>{{ invite.email }}</strong> ({{ invite.get_role_display|lower }} of {{ student }}).</p>
+  <p>If the email doesn't arrive, you can send this one-time link yourself, for example by WhatsApp. It works once and expires on {{ invite.expires_at|date:"M j, Y" }}. Don't post it anywhere public.</p>
+  <p class="mono">{{ link }}</p>
+  <a class="btn" href="{% url 'student_detail' student.pk %}">Back to {{ student.first_name }}</a>
+</div>
+{% endblock %}

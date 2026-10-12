@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load portal_tags %}
+{% block title %}{{ application.university }} · {{ student }} · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'student_detail' student.pk %}">← {{ student }}</a></p>
+<div class="page-head">
+  <div>
+    <h1>{{ application.university }}</h1>
+    <p class="subtle">{{ application.get_round_display }} · {{ application.entry_year }} entry · {{ application.university.get_application_system_display }}{% if application.course %} · {{ application.course }}{% endif %}</p>
+  </div>
+  <span class="chip {{ application.status|chip_class }}">{{ application.get_status_display }}</span>
+</div>
+
+{% for w in ucas_warnings %}<div class="notice">{{ w }}</div>{% endfor %}
+
+{% if user.is_counselor and application.status != 'active' and application.status != 'removed' and application.status != 'declined' %}
+<section class="card">
+  <h2>{% if application.status == 'pending_add' %}{{ student.first_name }} asked to add this school{% else %}{{ student.first_name }} asked to remove this school{% endif %}</h2>
+  <div class="row-actions">
+    <form method="post" action="{% url 'application_approve' application.pk %}" class="inline-form">{% csrf_token %}<button class="btn" type="submit">Approve</button></form>
+    <form method="post" action="{% url 'application_decline' application.pk %}" class="inline-form">{% csrf_token %}<button class="btn secondary" type="submit">Decline</button></form>
+  </div>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Tasks</h2>
+  {% if application.status == 'pending_add' %}<p class="empty">Deadlines are added as tasks once the school is approved.</p>{% endif %}
+  <ul class="rows">
+    {% for task in tasks %}
+      {% include "portal/_task_row.html" %}
+      {% if user.is_counselor and task.date_overridden %}
+      <li class="subtle">
+        School deadline is {{ task.template.due_date|date:"M j, Y" }}.
+        <form method="post" action="{% url 'task_reset_date' task.pk %}" class="inline-form">{% csrf_token %}<button class="btn small secondary" type="submit">Use school date</button></form>
+      </li>
+      {% endif %}
+    {% empty %}{% if application.status != 'pending_add' %}<li class="empty">No tasks. {% if user.is_counselor %}Add deadlines on the <a href="{% url 'university_detail' application.university_id %}">university page</a> for {{ application.entry_year }}.{% endif %}</li>{% endif %}{% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Documents</h2>
+    {% if can_edit and application.is_listed %}<a class="btn small secondary" href="{% url 'document_create' application.pk %}">Add</a>{% endif %}
+  </div>
+  <ul class="rows">
+    {% for doc in documents %}
+    <li>
+      <div class="row-main">
+        <div class="title">{{ doc }}</div>
+        {% if doc.link %}<div class="subtle"><a href="{{ doc.link }}" target="_blank" rel="noopener noreferrer">Open in Google</a></div>{% endif %}
+      </div>
+      <div class="row-actions">
+        <span class="chip {{ doc.status|chip_class }}">{{ doc.get_status_display }}</span>
+        {% if can_edit %}<a class="btn small secondary" href="{% url 'document_edit' doc.pk %}">Update</a>{% endif %}
+      </div>
+    </li>
+    {% empty %}<li class="empty">No documents tracked.</li>{% endfor %}
+  </ul>
+</section>
+
+{% if can_edit and application.status == 'active' or can_edit and application.status == 'pending_add' %}
+<section class="card">
+  <h2>Change</h2>
+  {% if round_form and application.status == 'active' %}
+  <form method="post" action="{% url 'application_round' application.pk %}" class="search">
+    {% csrf_token %}
+    {{ round_form.round }}
+    <button class="btn secondary" type="submit">Change round</button>
+  </form>
+  {% endif %}
+  <a class="btn danger" href="{% url 'application_remove' application.pk %}">{% if user.is_counselor %}Remove school{% elif application.status == 'pending_add' %}Cancel request{% else %}Request removal{% endif %}</a>
+</section>
+{% endif %}
+{% endblock %}

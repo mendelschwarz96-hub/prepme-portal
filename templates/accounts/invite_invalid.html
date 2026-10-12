@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card auth-box">
+  <h1>This invite can't be used</h1>
+  {% if reason == "exists" %}
+  <p>An account with this email already exists. Please <a href="{% url 'login' %}">log in</a>, or ask your counselor for help.</p>
+  {% elif reason == "student_linked" %}
+  <p>This student already has a login. Please <a href="{% url 'login' %}">log in</a>, or ask your counselor for help.</p>
+  {% else %}
+  <p>The link has expired or was already used. Ask your counselor for a new invite.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Audit log · PrepMe Portal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Audit log</h1>
+    <p class="subtle">{% if student %}Showing activity on <a href="{% url 'student_detail' student.pk %}">{{ student }}</a>'s record. <a href="{% url 'audit_log' %}">Show all</a>{% else %}All activity, newest first.{% endif %}</p>
+  </div>
+</div>
+<div class="card table-wrap">
+  <table class="log">
+    <thead><tr><th>When</th><th>Who</th><th>Action</th><th>What</th><th>IP</th></tr></thead>
+    <tbody>
+      {% for e in page %}
+      <tr>
+        <td>{{ e.at|date:"Y-m-d H:i" }}</td>
+        <td>{{ e.actor_email|default:"—" }}</td>
+        <td>{{ e.get_action_display }}</td>
+        <td>{{ e.object_type }}{% if e.object_id %} #{{ e.object_id }}{% endif %}{% if e.detail %}<br><span class="subtle">{{ e.detail }}</span>{% endif %}</td>
+        <td class="mono">{{ e.ip|default:"" }}</td>
+      </tr>
+      {% empty %}<tr><td colspan="5" class="empty">No entries.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="pagination">
+  {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}{% if student %}&student={{ student.pk }}{% endif %}">← Newer</a>{% endif %}
+  {% if page.has_next %}<a href="?page={{ page.next_page_number }}{% if student %}&student={{ student.pk }}{% endif %}">Older →</a>{% endif %}
+</div>
+{% endblock %}

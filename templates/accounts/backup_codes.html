@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card auth-box">
+  <h1>Save your backup codes</h1>
+  <p>If you lose your phone, each of these codes works once instead of the app code. Keep them somewhere safe, such as a password manager. <strong>They won't be shown again.</strong></p>
+  <ul class="codes">{% for c in codes %}<li>{{ c }}</li>{% endfor %}</ul>
+  <a class="btn" href="{% url 'home' %}">I've saved them</a>
+</div>
+{% endblock %}

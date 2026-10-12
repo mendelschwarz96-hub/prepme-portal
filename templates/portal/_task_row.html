@@ -1,0 +1,31 @@
+{% load portal_tags %}
+<li>
+  <div class="row-main">
+    <div class="title">{{ task.title }}</div>
+    <div class="subtle">
+      {% if show_student %}<a href="{% url 'student_detail' task.student_id %}">{{ task.student }}</a> · {% endif %}
+      {% if task.due_date %}
+        <span class="{% if task.due_date < today and task.status != 'done' %}overdue{% endif %}">Due {{ task.due_date|date:"D, M j, Y" }}</span>
+      {% else %}No due date{% endif %}
+      {% if task.owner %} · {{ task.owner }}{% endif %}
+      {% if task.date_overridden %} · <span title="Date changed for this student only">custom date</span>{% endif %}
+    </div>
+  </div>
+  <div class="row-actions">
+    <span class="chip {{ task.status|chip_class }}">{{ task.get_status_display }}</span>
+    {% if can_edit %}
+      <form method="post" action="{% url 'task_status' task.pk %}" class="inline-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        {% if task.status == 'done' %}
+          <input type="hidden" name="status" value="todo"><button class="btn small secondary" type="submit">Reopen</button>
+        {% else %}
+          <input type="hidden" name="status" value="done"><button class="btn small" type="submit">Mark done</button>
+        {% endif %}
+      </form>
+      {% if user.is_counselor or task.source == 'manual' %}
+        <a class="btn small secondary" href="{% url 'task_edit' task.pk %}">Edit</a>
+      {% endif %}
+    {% endif %}
+  </div>
+</li>

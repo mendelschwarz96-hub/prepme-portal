@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load portal_tags %}
+{% block title %}{{ university }} · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'university_list' %}">← Universities</a></p>
+<div class="page-head">
+  <div>
+    <h1>{{ university }}</h1>
+    <p class="subtle">{% if university.city %}{{ university.city }}, {% endif %}{{ university.country }} · {{ university.get_application_system_display }}{% if university.oxbridge %} · Oxford/Cambridge{% endif %}
+      {% if university.website %} · <a href="{{ university.website }}" target="_blank" rel="noopener noreferrer">Website</a>{% endif %}</p>
+  </div>
+  <a class="btn secondary" href="{% url 'university_edit' university.pk %}">Edit</a>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Deadlines</h2>
+    <a class="btn small" href="{% url 'deadline_add' university.pk %}">Add deadline</a>
+  </div>
+  <p class="subtle">Each deadline becomes a task for every student with this school on their list for that entry year (and round, if set).</p>
+  <ul class="rows">
+    {% for d in deadlines %}
+    <li>
+      <div class="row-main">
+        <div class="title">{{ d.title|default:d.get_kind_display }}</div>
+        <div class="subtle">{{ d.due_date|date:"D, M j, Y" }} · {{ d.entry_year }} entry · {% if d.round %}{{ d.get_round_display }}{% else %}All rounds{% endif %}</div>
+      </div>
+      <div class="row-actions">
+        <a class="btn small secondary" href="{% url 'deadline_edit' university.pk d.pk %}">Edit</a>
+        <a class="btn small secondary" href="{% url 'deadline_delete' university.pk d.pk %}">Delete</a>
+      </div>
+    </li>
+    {% empty %}<li class="empty">No deadlines yet.</li>{% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Students with this school</h2>
+  <ul class="rows">
+    {% for app in applications %}
+    <li>
+      <div class="row-main"><a href="{% url 'application_detail' app.pk %}">{{ app.student }}</a> <span class="subtle">· {{ app.get_round_display }} {{ app.entry_year }}</span></div>
+      <span class="chip {{ app.status|chip_class }}">{{ app.get_status_display }}</span>
+    </li>
+    {% empty %}<li class="empty">None yet.</li>{% endfor %}
+  </ul>
+</section>
+{% endblock %}

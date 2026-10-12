@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Students · PrepMe Portal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Students</h1>
+  <div class="row-actions">
+    <a class="btn secondary" href="{% url 'school_create' %}?next={% url 'student_create' %}">New high school</a>
+    <a class="btn" href="{% url 'student_create' %}">New student</a>
+  </div>
+</div>
+<form method="get" class="search">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search by name" aria-label="Search by name">
+  <select name="show" aria-label="Show">
+    <option value="active" {% if show == 'active' %}selected{% endif %}>Active</option>
+    <option value="inactive" {% if show == 'inactive' %}selected{% endif %}>Inactive</option>
+    <option value="all" {% if show == 'all' %}selected{% endif %}>All</option>
+  </select>
+  <button class="btn secondary" type="submit">Filter</button>
+</form>
+<div class="card">
+  <ul class="rows">
+    {% for s in students %}
+    <li>
+      <div class="row-main">
+        <div class="title"><a href="{% url 'student_detail' s.pk %}">{{ s }}</a></div>
+        <div class="subtle">{{ s.get_curriculum_display }} · Class of {{ s.graduation_year }}{% if s.school %} · {{ s.school }}{% endif %}</div>
+      </div>
+      <div class="subtle">{{ s.open_tasks }} open task{{ s.open_tasks|pluralize }}{% if s.next_due %} · next {{ s.next_due|date:"M j" }}{% endif %}</div>
+    </li>
+    {% empty %}<li class="empty">No students yet.</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

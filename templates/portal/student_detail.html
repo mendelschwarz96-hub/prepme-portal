@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load portal_tags %}
+{% block title %}{{ student }} · PrepMe Portal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ student }}</h1>
+    <p class="subtle">{{ student.get_curriculum_display }} · Class of {{ student.graduation_year }}{% if not student.is_active %} · <span class="chip muted">Inactive</span>{% endif %}</p>
+  </div>
+  {% if can_edit %}<a class="btn secondary" href="{% url 'student_edit' student.pk %}">Edit profile</a>{% endif %}
+</div>
+
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Profile</h2>
+    <dl class="facts">
+      <dt>Home country</dt><dd>{{ student.home_country }}</dd>
+      <dt>High school</dt><dd>{{ student.school|default:"—" }}</dd>
+      <dt>Intended major</dt><dd>{{ student.intended_major|default:"—" }}</dd>
+      <dt>GPA</dt><dd>{{ student.gpa|default:"—" }}{% if student.gpa_scale %} ({{ student.gpa_scale }}){% endif %}</dd>
+      {% if user.is_counselor %}
+      <dt>Student login</dt><dd>{% if student.user %}{{ student.user.email }}{% else %}Not invited yet{% endif %}</dd>
+      <dt>Parents</dt><dd>{% for p in parents %}{{ p }} ({{ p.email }}){% if not forloop.last %}<br>{% endif %}{% empty %}—{% endfor %}</dd>
+      {% endif %}
+    </dl>
+    {% if user.is_counselor %}
+      {% for inv in invites %}<p class="subtle">Invite pending: {{ inv.email }} ({{ inv.get_role_display }}), expires {{ inv.expires_at|date:"M j" }}</p>{% endfor %}
+      <p><a class="btn small secondary" href="{% url 'invite_create' student.pk %}">Invite student or parent</a></p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Test scores</h2>
+      {% if can_edit %}<a class="btn small secondary" href="{% url 'score_add' student.pk %}">Add</a>{% endif %}
+    </div>
+    <ul class="rows">
+      {% for s in test_scores %}
+      <li>
+        <div class="row-main"><span class="title">{{ s.get_test_display }}{% if s.label %} – {{ s.label }}{% endif %}:</span> {{ s.score }}
+          {% if s.taken_on %}<span class="subtle">({{ s.taken_on|date:"M Y" }})</span>{% endif %}</div>
+        {% if can_edit %}<div class="row-actions">
+          <a class="btn small secondary" href="{% url 'score_edit' student.pk s.pk %}">Edit</a>
+          <a class="btn small secondary" href="{% url 'score_delete' student.pk s.pk %}">Delete</a></div>{% endif %}
+      </li>
+      {% empty %}<li class="empty">No scores yet.</li>{% endfor %}
+    </ul>
+  </section>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Grades</h2>
+    {% if can_edit %}<a class="btn small secondary" href="{% url 'grade_add' student.pk %}">Add</a>{% endif %}
+  </div>
+  <ul class="rows">
+    {% for g in academic_records %}
+    <li>
+      <div class="row-main"><span class="title">{{ g.subject }}</span>{% if g.level %} <span class="subtle">{{ g.get_level_display }}</span>{% endif %}:
+        {{ g.grade }} <span class="subtle">({{ g.get_grade_type_display }}{% if g.period %}, {{ g.period }}{% endif %})</span></div>
+      {% if can_edit %}<div class="row-actions">
+        <a class="btn small secondary" href="{% url 'grade_edit' student.pk g.pk %}">Edit</a>
+        <a class="btn small secondary" href="{% url 'grade_delete' student.pk g.pk %}">Delete</a></div>{% endif %}
+    </li>
+    {% empty %}<li class="empty">No grades yet.</li>{% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>School list</h2>
+    {% if can_edit %}<a class="btn small" href="{% url 'application_add' student.pk %}">{% if user.is_counselor %}Add school{% else %}Request a school{% endif %}</a>{% endif %}
+  </div>
+  <ul class="rows">
+    {% for app in applications %}
+    <li>
+      <div class="row-main">
+        <div class="title"><a href="{% url 'application_detail' app.pk %}">{{ app.university }}</a></div>
+        <div class="subtle">{{ app.get_round_display }} · {{ app.entry_year }} entry · {{ app.university.get_application_system_display }}{% if app.course %} · {{ app.course }}{% endif %}</div>
+      </div>
+      <span class="chip {{ app.status|chip_class }}">{{ app.get_status_display }}</span>
+    </li>
+    {% empty %}<li class="empty">No schools yet.</li>{% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Tasks</h2>
+    {% if can_edit %}<a class="btn small secondary" href="{% url 'task_create' student.pk %}">Add task</a>{% endif %}
+  </div>
+  <ul class="rows">
+    {% for task in open_tasks %}{% include "portal/_task_row.html" %}{% empty %}<li class="empty">No open tasks.</li>{% endfor %}
+  </ul>
+  {% if done_tasks %}
+  <details>
+    <summary class="subtle">Done ({{ done_tasks|length }})</summary>
+    <ul class="rows">{% for task in done_tasks %}{% include "portal/_task_row.html" %}{% endfor %}</ul>
+  </details>
+  {% endif %}
+</section>
+
+{% if user.is_counselor %}<p><a href="{% url 'audit_log' %}?student={{ student.pk }}">Who viewed or changed this record</a></p>{% endif %}
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card auth-box">
+  <h1>Create your login</h1>
+  <p class="subtle">{{ invite.email }} · {{ invite.get_role_display }} access for {{ invite.student.first_name }}</p>
+  <form method="post" class="stacked" novalidate>{% csrf_token %}{{ form.as_div }}
+    <div class="form-actions"><button class="btn" type="submit">Create login</button></div>
+  </form>
+</div>
+{% endblock %}
