@@ -86,6 +86,36 @@ one is held back and the rest are approved.
   test policy, their own SAT/TOEFL/IELTS) and compare up to 4 schools side by side. Parents can't.
 - Application deadlines aren't in the Scorecard either; add them on each university page.
 
+## Phase 4: decisions and benchmarks
+
+- Record each university's decision (admitted / conditional / denied / waitlisted / deferred /
+  withdrawn) and any scholarship on the school's page. Students can record their own decisions.
+- **How past students did** (link on the student page and each school) compares a student's SAT,
+  ACT, IB total (IB students only) and GPA (same high school and scale only) with past PrepMe results.
+- Privacy: only past students with an active "anonymized results" **consent** are used. Any group
+  under `BENCHMARK_MIN_GROUP` (3) students is hidden. No names, schools or free text are shown, and
+  medians are rounded. Parents can't see benchmarks.
+- **Import past results** (Students page): one CSV row per application, with optional consent
+  columns. Consent is recorded or withdrawn per student under Consent.
+
+## Phase 5: after admission
+
+Mark the admitted school the student will attend. This adds a checklist: deposit, I-20 and F-1 visa
+appointment, and housing for U.S. schools; firm choice, CAS, Student visa and accommodation for UCAS.
+
+## Billing
+
+- Counselor menu → **Billing**: balances for every student. On a student, use **Add charge**
+  (date, minutes, description; the amount is calculated from the hourly rate if left blank) and
+  **Record payment**.
+- **Monthly statements** follow PrepMe's invoice layout and can be printed or saved as PDF.
+- Students and their parents see the same Billing page, read-only. Company and bank details are
+  under Billing → Billing settings.
+
+## Deploying
+
+See [DEPLOY.md](DEPLOY.md).
+
 ## Security notes
 
 - Permissions are checked on the server for every request (`portal/permissions.py`).

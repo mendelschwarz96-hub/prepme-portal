@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Import past results · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'student_list' %}">← Students</a></p>
+<h1>Import past students' results</h1>
+{% if not preview %}
+<div class="card">
+  <p>One row per application. Past students are saved as inactive records with no login.</p>
+  <ul>
+    <li><a href="{% url 'outcomes_import_template' %}">Download the template</a>. Its columns are: <span class="mono">{{ columns|join:", " }}</span></li>
+    <li>Codes: curriculum <code>ib / a_levels / us / brazil / other_national</code>; round <code>ed / ed2 / ea / rea / rd / rolling / ucas</code>; outcome <code>admitted / conditional / denied / waitlisted / deferred / withdrawn</code>; consent_given_by <code>student / parent</code>.</li>
+    <li><strong>Consent:</strong> fill in consent_given_by, consent_name and consent_date only if the family agreed to share results anonymously. Rows without consent are stored but never used in benchmarks.</li>
+    <li>Universities that don't exist yet are added automatically.</li>
+  </ul>
+  <form method="post" enctype="multipart/form-data" class="stacked">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div><label for="id_file">CSV file</label><input type="file" name="file" id="id_file" accept=".csv,text/csv"></div>
+    <div class="form-actions"><button class="btn" type="submit">Preview</button></div>
+  </form>
+</div>
+{% else %}
+<div class="card">
+  <h2>Preview</h2>
+  {% for p in problems %}<p class="notice">{{ p }}</p>{% endfor %}
+  <p>{{ valid_count }} of {{ rows|length }} row{{ rows|length|pluralize }} ready to import. Nothing has been saved yet.</p>
+  <ul class="rows">
+    {% for r in rows %}
+    <li>
+      <div class="row-main">
+        <div class="title">Row {{ r.number }}: {{ r.data.first_name }} {{ r.data.last_name }} → {{ r.data.university }} <span class="subtle">({{ r.data.outcome }})</span></div>
+        {% if r.errors %}<ul class="errorlist">{% for e in r.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        {% for n in r.notes %}<div class="subtle">{{ n }}</div>{% endfor %}
+      </div>
+      {% if r.ok %}<span class="chip ok">ready</span>{% else %}<span class="chip danger">error</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <form method="post" class="form-actions">
+    {% csrf_token %}
+    <input type="hidden" name="content" value="{{ content }}">
+    <input type="hidden" name="confirm" value="1">
+    {% if valid_count %}<button class="btn" type="submit">Import {{ valid_count }} row{{ valid_count|pluralize }}</button>{% endif %}
+    <a class="btn secondary" href="{% url 'outcomes_import' %}">Choose another file</a>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

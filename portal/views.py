@@ -171,7 +171,8 @@ def student_create(request):
 def student_detail(request, pk):
     student = get_student(request.user, pk)
     audit.log(request, Action.VIEW, student)
-    tasks = student.tasks.filter(archived=False).select_related("owner", "application__university")
+    all_tasks = student.tasks.filter(archived=False).select_related("owner", "application__university")
+    tasks = all_tasks.exclude(source=Task.Source.AFTER_ADMISSION)
     applications = list(student.applications.filter(status__in=Application.OPEN).select_related("university"))
     context = {
         "student": student,
@@ -185,6 +186,8 @@ def student_detail(request, pk):
         "parents": student.parents.all(),
         "essays": student.essays.select_related("application__university", "prompt"),
         "notes": visible_notes(request.user, student)[:5],
+        "attending": next((a for a in applications if a.attending), None),
+        "after_admission": all_tasks.filter(source=Task.Source.AFTER_ADMISSION),
         "today": timezone.localdate(),
     }
     if request.user.is_counselor:

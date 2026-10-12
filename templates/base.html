@@ -23,10 +23,12 @@
         <a href="{% url 'student_list' %}">Students</a>
         <a href="{% url 'university_list' %}">Universities</a>
         <a href="{% url 'prompt_list' %}">Prompts</a>
+        <a href="{% url 'billing_overview' %}">Billing</a>
         <a href="{% url 'audit_log' %}">Audit log</a>
       {% else %}
         <a href="{% url 'home' %}">Home</a>
         {% if user.is_student %}<a href="{% url 'university_list' %}">Universities</a>{% endif %}
+        <a href="{% url 'billing_home' %}">Billing</a>
       {% endif %}
       <a href="{% url 'password_change' %}">Password</a>
       <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>

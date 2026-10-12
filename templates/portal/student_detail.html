@@ -48,6 +48,18 @@
   </section>
 </div>
 
+{% if attending %}
+<section class="card">
+  <div class="card-head">
+    <h2>After admission: {{ attending.university }}</h2>
+    <span class="chip ok">Attending</span>
+  </div>
+  <ul class="rows">
+    {% for task in after_admission %}{% include "portal/_task_row.html" %}{% empty %}<li class="empty">Checklist complete.</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
 <section class="card">
   <div class="card-head">
     <h2>Grades</h2>
@@ -151,6 +163,9 @@
 {% endif %}
 
 <p class="subtle">
+  <a href="{% url 'billing_account' student.pk %}">Billing</a> ·
+  <a href="{% url 'student_benchmarks' student.pk %}">How past students did</a> ·
+  {% if user.is_counselor %}<a href="{% url 'consent_list' student.pk %}">Consent</a> · {% endif %}
   <a href="{% url 'student_summary' student.pk %}">Progress summary (parent view)</a>
   {% if user.is_counselor %} · <a href="{% url 'audit_log' %}?student={{ student.pk }}">Who viewed or changed this record</a>{% endif %}
 </p>

@@ -6,7 +6,7 @@
 <div class="page-head">
   <div>
     <h1>{{ student.first_name }}'s progress</h1>
-    <p class="subtle">Class of {{ student.graduation_year }} · updated {{ today|date:"M j, Y" }}</p>
+    <p class="subtle">Class of {{ student.graduation_year }} · updated {{ today|date:"M j, Y" }} · <a href="{% url 'billing_account' student.pk %}">Billing</a></p>
   </div>
 </div>
 
@@ -35,7 +35,9 @@
         <div class="title">{{ s.name }}</div>
         <div class="subtle">{{ s.round }} · {{ s.entry_year }} entry · tasks {{ s.tasks_done }}/{{ s.tasks_total }} · documents {{ s.docs_done }}/{{ s.docs_total }}{% if s.next_due %} · next deadline {{ s.next_due|date:"M j" }}{% endif %}</div>
       </div>
-      <span class="chip {{ s.status|chip_class }}">{{ s.status_label }}</span>
+      {% if s.attending %}<span class="chip ok">Attending</span>
+      {% elif s.outcome %}<span class="chip {% if s.outcome == 'admitted' or s.outcome == 'conditional' %}ok{% elif s.outcome == 'denied' %}danger{% else %}warn{% endif %}">{{ s.outcome_label }}</span>
+      {% else %}<span class="chip {{ s.status|chip_class }}">{{ s.status_label }}</span>{% endif %}
     </li>
     {% empty %}<li class="empty">No schools yet.</li>{% endfor %}
   </ul>

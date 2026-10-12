@@ -42,7 +42,17 @@ def pct(value):
     return f"{number:.1f}%" if number < 10 else f"{number:.0f}%"
 
 
-CURRENCY_SYMBOLS = {"USD": "US$", "GBP": "£", "EUR": "€", "CAD": "C$", "CHF": "CHF "}
+CURRENCY_SYMBOLS = {"USD": "US$", "GBP": "£", "EUR": "€", "CAD": "C$", "CHF": "CHF ", "BRL": "R$ "}
+
+
+@register.filter
+def amount(value, currency="BRL"):
+    """Money with cents, as on PrepMe's invoices: R$ 2,750.00"""
+    if value is None or value == "":
+        return "—"
+    symbol = CURRENCY_SYMBOLS.get((currency or "BRL").upper(), f"{currency} ")
+    sign = "-" if value < 0 else ""
+    return f"{sign}{symbol}{abs(value):,.2f}"
 
 
 @register.filter

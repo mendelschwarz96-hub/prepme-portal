@@ -29,6 +29,9 @@ def build(student, upcoming_limit=8):
             "tasks_total": len(app_tasks),
             "docs_done": sum(1 for d in docs if d.status in DOC_DONE),
             "docs_total": len(docs),
+            "outcome": app.outcome,
+            "outcome_label": app.get_outcome_display(),
+            "attending": app.attending,
             "next_due": min((t.due_date for t in app_tasks if t.due_date and t.status != Task.Status.DONE), default=None),
         })
 

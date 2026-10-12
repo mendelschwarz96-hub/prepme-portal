@@ -251,6 +251,40 @@ def change_round(application, round_):
     sync_tasks(application)
 
 
+# ---------------------------------------------------------------- after admission (Phase 5)
+
+AFTER_ADMISSION = {
+    "us": ["Pay enrollment deposit", "Request the I-20 (send financial documents)",
+           "Schedule the F-1 visa appointment", "Apply for housing"],
+    University.System.UCAS: ["Accept the offer as firm choice", "Receive the CAS",
+                             "Apply for the UK Student visa", "Apply for accommodation"],
+}
+
+
+@transaction.atomic
+def set_attending(application, by):
+    """Mark the school the student will attend and create the after-admission checklist."""
+    if application.outcome not in Application.ADMIT_OUTCOMES:
+        raise ValidationError("Only an admitted school can be marked as attending.")
+    application.student.applications.exclude(pk=application.pk).update(attending=False)
+    application.attending = True
+    application.save(update_fields=["attending"])
+    titles = AFTER_ADMISSION.get(application.university.application_system, AFTER_ADMISSION["us"])
+    existing = set(application.tasks.filter(source=Task.Source.AFTER_ADMISSION).values_list("title", flat=True))
+    for title in titles:
+        full = f"{application.university.name}: {title}"
+        if full not in existing:
+            Task.objects.create(
+                student=application.student, application=application, source=Task.Source.AFTER_ADMISSION,
+                title=full, owner=application.student.user, created_by=by,
+            )
+    # Checklists for other schools no longer apply.
+    Task.objects.filter(student=application.student, source=Task.Source.AFTER_ADMISSION).exclude(
+        application=application
+    ).exclude(status=Task.Status.DONE).update(archived=True)
+    application.tasks.filter(source=Task.Source.AFTER_ADMISSION).update(archived=False)
+
+
 def _decide(application, by):
     application.decided_by = by
     application.decided_at = timezone.now()

@@ -4,6 +4,7 @@
 <div class="page-head">
   <h1>Students</h1>
   <div class="row-actions">
+    <a class="btn secondary" href="{% url 'outcomes_import' %}">Import past results</a>
     <a class="btn secondary" href="{% url 'school_create' %}?next={% url 'student_create' %}">New high school</a>
     <a class="btn" href="{% url 'student_create' %}">New student</a>
   </div>

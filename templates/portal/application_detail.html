@@ -13,6 +13,28 @@
 
 {% for w in ucas_warnings %}<div class="notice">{{ w }}</div>{% endfor %}
 
+{% if application.is_listed %}
+<section class="card">
+  <div class="card-head">
+    <h2>Decision</h2>
+    <div class="row-actions">
+      {% if can_edit %}<a class="btn small secondary" href="{% url 'outcome_edit' application.pk %}">{% if application.outcome %}Edit{% else %}Record decision{% endif %}</a>{% endif %}
+      <a class="btn small secondary" href="{% url 'student_benchmarks' student.pk %}">How past students did</a>
+    </div>
+  </div>
+  {% if application.outcome %}
+    <p><span class="chip {% if application.is_admitted %}ok{% elif application.outcome == 'denied' %}danger{% else %}warn{% endif %}">{{ application.get_outcome_display }}</span>
+      {% if application.aid_offered %} · aid offered {{ application.aid_offered|money:application.aid_currency }} per year{% endif %}
+      {% if application.attending %} · <strong>Attending</strong>{% endif %}</p>
+    {% if can_edit and not application.attending and application.is_admitted %}
+    <form method="post" action="{% url 'set_attending' application.pk %}" class="inline-form">{% csrf_token %}
+      <button class="btn" type="submit">{{ student.first_name }} will attend: start the after-admission checklist</button>
+    </form>
+    {% endif %}
+  {% else %}<p class="empty">No decision yet.</p>{% endif %}
+</section>
+{% endif %}
+
 {% if user.is_counselor and application.status != 'active' and application.status != 'removed' and application.status != 'declined' %}
 <section class="card">
   <h2>{% if application.status == 'pending_add' %}{{ student.first_name }} asked to add this school{% else %}{{ student.first_name }} asked to remove this school{% endif %}</h2>

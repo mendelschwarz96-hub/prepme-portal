@@ -10,7 +10,11 @@ from accounts.models import User
 from .models import (
     AcademicRecord,
     Application,
+    BillingProfile,
+    Charge,
+    Consent,
     DeadlineTemplate,
+    Payment,
     DocumentItem,
     Essay,
     EssayPrompt,
@@ -397,6 +401,77 @@ class MeetingNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if not self.instance.pk:
             self.fields["met_on"].initial = date.today()
+
+
+class ChargeForm(forms.ModelForm):
+    class Meta:
+        model = Charge
+        fields = ["date", "minutes", "description", "amount", "currency"]
+        widgets = {"date": DateInput(), "description": forms.TextInput()}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        profile = BillingProfile.get()
+        self.profile = profile
+        self.fields["amount"].required = False
+        self.fields["amount"].help_text = (
+            f"Leave blank to calculate from the time at {profile.currency} {profile.hourly_rate:,.2f} per hour."
+        )
+        if not self.instance.pk:
+            self.fields["date"].initial = date.today()
+            self.fields["minutes"].initial = 60
+            self.fields["currency"].initial = profile.currency
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("amount") is None:
+            if cleaned.get("minutes"):
+                from .billing import suggested_amount
+                cleaned["amount"] = suggested_amount(cleaned["minutes"], self.profile)
+                self.instance.amount = cleaned["amount"]
+            else:
+                self.add_error("amount", "Enter an amount, or the time so it can be calculated.")
+        if cleaned.get("currency"):
+            cleaned["currency"] = cleaned["currency"].upper()
+        return cleaned
+
+
+class PaymentForm(forms.ModelForm):
+    class Meta:
+        model = Payment
+        fields = ["date", "amount", "currency", "method", "reference"]
+        widgets = {"date": DateInput()}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            self.fields["date"].initial = date.today()
+            self.fields["currency"].initial = BillingProfile.get().currency
+
+
+class BillingProfileForm(forms.ModelForm):
+    class Meta:
+        model = BillingProfile
+        fields = ["company_name", "tax_id", "payment_details", "hourly_rate", "currency"]
+        widgets = {"payment_details": forms.Textarea(attrs={"rows": 4})}
+
+
+class OutcomeForm(forms.ModelForm):
+    class Meta:
+        model = Application
+        fields = ["outcome", "aid_offered", "aid_currency"]
+
+
+class ConsentForm(forms.ModelForm):
+    class Meta:
+        model = Consent
+        fields = ["kind", "given_by", "given_by_name", "given_on", "text_version"]
+        widgets = {"given_on": DateInput()}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            self.fields["given_on"].initial = date.today()
 
 
 class InviteForm(forms.Form):

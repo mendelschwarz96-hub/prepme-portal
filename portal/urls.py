@@ -1,8 +1,27 @@
 from django.urls import path
 
-from . import views, views_essays, views_universities
+from . import views, views_billing, views_essays, views_outcomes, views_universities
 
 urlpatterns = [
+    path("billing/", views_billing.billing_home, name="billing_home"),
+    path("billing/students/", views_billing.billing_overview, name="billing_overview"),
+    path("billing/settings/", views_billing.billing_settings, name="billing_settings"),
+    path("students/<int:pk>/billing/", views_billing.billing_account, name="billing_account"),
+    path("students/<int:pk>/billing/<int:year>/<int:month>/", views_billing.billing_statement, name="billing_statement"),
+    path("students/<int:pk>/billing/charges/new/", views_billing.charge_form, name="charge_add"),
+    path("students/<int:pk>/billing/charges/<int:item_pk>/", views_billing.charge_form, name="charge_edit"),
+    path("students/<int:pk>/billing/charges/<int:item_pk>/delete/", views_billing.charge_delete, name="charge_delete"),
+    path("students/<int:pk>/billing/payments/new/", views_billing.payment_form, name="payment_add"),
+    path("students/<int:pk>/billing/payments/<int:item_pk>/", views_billing.payment_form, name="payment_edit"),
+    path("students/<int:pk>/billing/payments/<int:item_pk>/delete/", views_billing.payment_delete, name="payment_delete"),
+    path("applications/<int:pk>/outcome/", views_outcomes.outcome_form, name="outcome_edit"),
+    path("applications/<int:pk>/attending/", views_outcomes.set_attending, name="set_attending"),
+    path("students/<int:pk>/benchmarks/", views_outcomes.student_benchmarks, name="student_benchmarks"),
+    path("students/<int:pk>/consents/", views_outcomes.consent_list, name="consent_list"),
+    path("students/<int:pk>/consents/new/", views_outcomes.consent_form, name="consent_add"),
+    path("consents/<int:pk>/withdraw/", views_outcomes.consent_withdraw, name="consent_withdraw"),
+    path("outcomes/import/", views_outcomes.outcomes_import, name="outcomes_import"),
+    path("outcomes/import/template.csv", views_outcomes.outcomes_import_template, name="outcomes_import_template"),
     path("students/<int:pk>/summary/", views.student_summary, name="student_summary"),
     path("students/<int:pk>/essays/new/", views_essays.essay_create, name="essay_create"),
     path("essays/<int:pk>/", views_essays.essay_detail, name="essay_detail"),

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ label }} · {{ student }} · PrepMe Portal{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>{% if editing %}Edit{% elif label == "Payment" %}Record{% else %}Add{% endif %} {{ label|lower }}: {{ student }}</h1>
+  <form method="post" class="stacked" novalidate>
+    {% csrf_token %}
+    {{ form.as_div }}
+    <div class="form-actions">
+      <button type="submit" class="btn" name="then" value="done">Save</button>
+      {% if not editing %}<button type="submit" class="btn secondary" name="then" value="another">Save and add another</button>{% endif %}
+      <a class="btn secondary" href="{{ cancel_url }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

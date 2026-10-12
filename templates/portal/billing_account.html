@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load portal_tags %}
+{% block title %}Billing · {{ student }} · PrepMe Portal{% endblock %}
+{% block content %}
+{% if user.is_counselor %}<p class="subtle"><a href="{% url 'billing_overview' %}">← Billing</a> · <a href="{% url 'student_detail' student.pk %}">{{ student }}'s record</a></p>{% endif %}
+<div class="page-head">
+  <div>
+    <h1>Billing: {{ student }}</h1>
+    <p class="subtle">Sessions and payments{% if not user.is_counselor %}. Questions? Talk to your counselor.{% endif %}</p>
+  </div>
+  {% if user.is_counselor %}
+  <div class="row-actions">
+    <a class="btn" href="{% url 'charge_add' student.pk %}">Add charge</a>
+    <a class="btn secondary" href="{% url 'payment_add' student.pk %}">Record payment</a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="stats money">
+  {% for b in balances %}
+  <div class="stat{% if b.balance > 0 %} stat-alert{% endif %}">
+    <span class="stat-value">{{ b.balance|amount:b.currency }}</span>
+    <span class="stat-label">balance due{% if balances|length > 1 %} ({{ b.currency }}){% endif %}</span>
+  </div>
+  <div class="stat"><span class="stat-value">{{ b.charged|amount:b.currency }}</span><span class="stat-label">charged in total</span></div>
+  <div class="stat"><span class="stat-value">{{ b.paid|amount:b.currency }}</span><span class="stat-label">paid in total</span></div>
+  {% endfor %}
+</div>
+
+<section class="card">
+  <h2>Monthly statements</h2>
+  <ul class="rows">
+    {% for s in statements %}
+    <li>
+      <div class="row-main">
+        <div class="title"><a href="{% url 'billing_statement' student.pk s.year s.month %}">{{ s.start|date:"F Y" }}</a></div>
+        <div class="subtle">{{ s.count }} item{{ s.count|pluralize }}</div>
+      </div>
+      <span>{% for cur, total in s.totals.items %}{{ total|amount:cur }}{% if not forloop.last %} · {% endif %}{% endfor %}</span>
+      <a class="btn small secondary" href="{% url 'billing_statement' student.pk s.year s.month %}">View / print</a>
+    </li>
+    {% empty %}<li class="empty">No charges yet.</li>{% endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Charges</h2>
+    <ul class="rows">
+      {% for c in charges %}
+      <li>
+        <div class="row-main">
+          <div class="title">{{ c.description }}</div>
+          <div class="subtle">{{ c.date|date:"d/m/Y" }}{% if c.minutes %} · {{ c.minutes }} min{% endif %}</div>
+        </div>
+        <span>{{ c.amount|amount:c.currency }}</span>
+        {% if user.is_counselor %}<div class="row-actions">
+          <a class="btn small secondary" href="{% url 'charge_edit' student.pk c.pk %}">Edit</a>
+          <a class="btn small secondary" href="{% url 'charge_delete' student.pk c.pk %}">Delete</a></div>{% endif %}
+      </li>
+      {% empty %}<li class="empty">No charges.</li>{% endfor %}
+    </ul>
+  </section>
+  <section class="card">
+    <h2>Payments</h2>
+    <ul class="rows">
+      {% for p in payments %}
+      <li>
+        <div class="row-main">
+          <div class="title">{{ p.amount|amount:p.currency }}</div>
+          <div class="subtle">{{ p.date|date:"d/m/Y" }} · {{ p.get_method_display }}{% if p.reference %} · {{ p.reference }}{% endif %}</div>
+        </div>
+        {% if user.is_counselor %}<div class="row-actions">
+          <a class="btn small secondary" href="{% url 'payment_edit' student.pk p.pk %}">Edit</a>
+          <a class="btn small secondary" href="{% url 'payment_delete' student.pk p.pk %}">Delete</a></div>{% endif %}
+      </li>
+      {% empty %}<li class="empty">No payments recorded.</li>{% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

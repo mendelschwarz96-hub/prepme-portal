@@ -181,6 +181,36 @@ table.log th, table.log td { text-align: left; padding: .4rem .5rem; border-top:
 progress { width: 100%; height: .5rem; accent-color: var(--brand); }
 .note-body { overflow-wrap: anywhere; }
 
+/* Billing statement (screen and print) */
+.statement { max-width: 46rem; margin: 0 auto 1rem; padding: 1.5rem; }
+.statement-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.statement-head img { width: 110px; height: auto; }
+.statement-month { font-family: var(--serif); font-size: 1.3rem; color: var(--brand); text-align: right; }
+.statement-student { border: 2px solid var(--brand); padding: .7rem 1rem; display: flex; justify-content: space-around; font-size: 1.05rem; margin-bottom: 1rem; }
+.statement-table { width: 100%; border-collapse: collapse; }
+.statement-table th, .statement-table td { padding: .6rem .5rem; text-align: left; }
+.statement-table thead th { border-top: 2px solid var(--brand); border-bottom: 2px solid var(--brand); font-size: .9rem; }
+.statement-table tbody tr:nth-child(odd) { background: var(--brand-tint); }
+.statement-table tfoot th, .statement-table tfoot td { border-top: 2px solid var(--brand); border-bottom: 2px solid var(--brand); }
+.statement-table .num { text-align: right; white-space: nowrap; }
+.statement-foot { margin-top: 1.5rem; font-size: .92rem; line-height: 1.6; }
+@media (max-width: 520px) {
+  .statement { padding: 1rem .75rem; }
+  .statement-table { font-size: .82rem; }
+  .statement-table th, .statement-table td { padding: .45rem .25rem; }
+  .statement-head img { width: 80px; }
+  .no-print-sm { display: none; }
+}
+.stats.money .stat-value { font-size: 1.35rem; white-space: nowrap; }
+
+@media print {
+  .topbar, .no-print, .messages { display: none !important; }
+  body { background: #fff; }
+  main { padding: 0; max-width: none; }
+  .card { border: 0; box-shadow: none; }
+  .statement-table tbody tr:nth-child(odd) { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
 /* Universities */
 .filters summary { cursor: pointer; }
 .filter-grid { display: grid; gap: .75rem 1rem; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); margin-top: .75rem; align-items: end; }

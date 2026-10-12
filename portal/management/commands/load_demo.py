@@ -3,16 +3,21 @@
 All names and deadline dates are made up. Deadline dates are set relative to today
 so the dashboard has something to show.
 """
-from datetime import timedelta
+from datetime import date, timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from accounts.models import User
-from portal import deadlines, essays, scorecard
+from portal import billing, deadlines, essays, scorecard
 from portal.models import (
     AcademicRecord,
+    Application,
+    Charge,
+    Consent,
+    Payment,
     Curriculum,
     DeadlineKind,
     DeadlineTemplate,
@@ -174,6 +179,30 @@ class Command(BaseCommand):
         )
 
         self.stdout.write(self.style.SUCCESS("Demo data loaded. Log in with any of these (password: %s):" % DEMO_PASSWORD))
+        # Billing: Ana's sessions in the format of PrepMe's invoices (sample entries).
+        for day, minutes, text in [(9, 60, "Common App Brainstorm"), (15, 60, "Presencial"), (17, 60, "Presencial"),
+                                   (25, 60, "Presencial"), (29, 30, "Carta Padre"), (30, 60, "Presencial")]:
+            Charge.objects.create(student=ana, date=date(today.year, 6, day), minutes=minutes, description=text,
+                                  amount=billing.suggested_amount(minutes), created_by=counselor)
+        Charge.objects.create(student=ana, date=today - timedelta(days=3), minutes=60, description="Essay review",
+                              amount=billing.suggested_amount(60), created_by=counselor)
+        Payment.objects.create(student=ana, date=date(today.year, 7, 5), amount=Decimal("15125.00"),
+                               method=Payment.Method.PIX, reference="June", created_by=counselor)
+
+        # Past students (fictional) with consent, so "How past students did" has data.
+        past = [("admitted", 1500, 41), ("admitted", 1520, 42), ("admitted", 1480, 40), ("admitted", 1540, 43),
+                ("denied", 1400, 36), ("denied", 1420, 37), ("denied", 1380, 35)]
+        for n, (outcome, sat, ib) in enumerate(past, start=1):
+            p = StudentProfile.objects.create(first_name=f"Past student {n}", last_name="(demo)", home_country="Brazil",
+                                              curriculum=Curriculum.IB, graduation_year=today.year - 1, is_active=False)
+            TestScore.objects.create(student=p, test=TestScore.Test.SAT, score=str(sat))
+            TestScore.objects.create(student=p, test=TestScore.Test.IB_FINAL, score=str(ib))
+            Application.objects.create(student=p, university=northeastern, entry_year=today.year - 1, round=Round.RD,
+                                       status=Application.Status.ACTIVE, outcome=outcome,
+                                       aid_offered=15000 if outcome == "admitted" else None)
+            Consent.objects.create(student=p, kind=Consent.Kind.ANONYMIZED_OUTCOMES, given_by=Consent.GivenBy.PARENT,
+                                   given_by_name="Demo parent", given_on=date(today.year - 1, 6, 1), recorded_by=counselor)
+
         self.stdout.write("University figures for U.S. schools are real (College Scorecard); deadline dates and prompts are samples.")
         for email, role in [
             ("counselor@demo.test", "counselor"),

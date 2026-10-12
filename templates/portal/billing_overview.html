@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load portal_tags %}
+{% block title %}Billing · PrepMe Portal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Billing</h1>
+    <p class="subtle">Rate: {{ profile.hourly_rate|amount:profile.currency }} per hour. To add a charge, open a student below or go to their record.</p>
+  </div>
+  <a class="btn secondary" href="{% url 'billing_settings' %}">Billing settings</a>
+</div>
+<div class="card">
+  <ul class="rows">
+    {% for r in rows %}
+    <li>
+      <div class="row-main">
+        <div class="title"><a href="{% url 'billing_account' r.student.pk %}">{{ r.student }}</a></div>
+        <div class="subtle">{% if r.last_charge %}Last charge {{ r.last_charge|date:"d/m/Y" }}{% endif %}</div>
+      </div>
+      <span>{% for b in r.balances %}<span class="{% if b.balance > 0 %}overdue{% endif %}">{{ b.balance|amount:b.currency }} due</span>{% if not forloop.last %} · {% endif %}{% endfor %}</span>
+      <a class="btn small" href="{% url 'charge_add' r.student.pk %}">Add charge</a>
+    </li>
+    {% empty %}<li class="empty">No charges yet. Open a student's record and choose Billing → Add charge.</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

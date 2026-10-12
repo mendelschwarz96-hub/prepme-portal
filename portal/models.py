@@ -1,3 +1,4 @@
+from decimal import Decimal
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -325,6 +326,23 @@ class Application(models.Model):
     decided_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # ---- Phase 4: the university's decision
+    class Outcome(models.TextChoices):
+        ADMITTED = "admitted", "Admitted"
+        CONDITIONAL = "conditional", "Conditional offer (UCAS)"
+        DENIED = "denied", "Denied"
+        WAITLISTED = "waitlisted", "Waitlisted"
+        DEFERRED = "deferred", "Deferred"
+        WITHDRAWN = "withdrawn", "Withdrawn by student"
+
+    ADMIT_OUTCOMES = (Outcome.ADMITTED, Outcome.CONDITIONAL)
+
+    outcome = models.CharField(max_length=20, choices=Outcome.choices, blank=True)
+    aid_offered = models.PositiveIntegerField("Aid offered per year", null=True, blank=True,
+                                              help_text="Scholarships and grants per year (not loans).")
+    aid_currency = models.CharField(max_length=3, default="USD")
+    attending = models.BooleanField(default=False, help_text="The student accepted this offer.")
+
     class Meta:
         ordering = ["university__name"]
         constraints = [
@@ -346,6 +364,10 @@ class Application(models.Model):
     def is_listed(self):
         return self.status in self.LISTED
 
+    @property
+    def is_admitted(self):
+        return self.outcome in self.ADMIT_OUTCOMES
+
     def clean(self):
         if self.university_id and self.round and self.round not in rounds_for_system(self.university.application_system):
             raise ValidationError({"round": f"{self.get_round_display()} is not a round for {self.university}."})
@@ -360,13 +382,14 @@ class Task(models.Model):
     class Source(models.TextChoices):
         AUTO = "auto", "From school deadline"
         MANUAL = "manual", "Added by hand"
+        AFTER_ADMISSION = "after_admission", "After-admission checklist"
 
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name="tasks")
     application = models.ForeignKey(Application, null=True, blank=True, on_delete=models.CASCADE, related_name="tasks")
     template = models.ForeignKey(
         DeadlineTemplate, null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks"
     )
-    source = models.CharField(max_length=10, choices=Source.choices, default=Source.MANUAL)
+    source = models.CharField(max_length=20, choices=Source.choices, default=Source.MANUAL)
     title = models.CharField(max_length=200)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_tasks"
@@ -611,6 +634,118 @@ class MeetingNote(models.Model):
 
     def __str__(self):
         return f"Meeting {self.met_on:%Y-%m-%d}"
+
+    @property
+    def audit_student(self):
+        return self.student
+
+
+# ===================================================================== Phase 4: consent
+
+class Consent(models.Model):
+    """Permission to use a student's data. Benchmarks only use students with an active
+    ANONYMIZED_OUTCOMES consent. For minors, consent is given by a parent or guardian."""
+
+    class Kind(models.TextChoices):
+        DATA_PROCESSING = "data_processing", "Use of data for counseling services"
+        ANONYMIZED_OUTCOMES = "anonymized_outcomes", "Anonymized results used to guide future students"
+
+    class GivenBy(models.TextChoices):
+        STUDENT = "student", "Student (18 or older)"
+        PARENT = "parent", "Parent or legal guardian"
+
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name="consents")
+    kind = models.CharField(max_length=30, choices=Kind.choices)
+    given_by = models.CharField(max_length=10, choices=GivenBy.choices)
+    given_by_name = models.CharField("Name of the person consenting", max_length=150)
+    given_on = models.DateField()
+    text_version = models.CharField("Consent text version", max_length=30, default="2026-1",
+                                    help_text="Which version of your consent wording was signed.")
+    withdrawn_on = models.DateField(null=True, blank=True)
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-given_on"]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} ({self.given_on:%Y-%m-%d})"
+
+    @property
+    def audit_student(self):
+        return self.student
+
+    @property
+    def is_active(self):
+        return self.withdrawn_on is None
+
+
+# ===================================================================== Billing
+
+class BillingProfile(models.Model):
+    """The counselor's billing details, printed on every statement (one row only)."""
+
+    company_name = models.CharField(max_length=150, default="Prepme Servicos Educacionais Eireli")
+    tax_id = models.CharField("CNPJ", max_length=30, blank=True)
+    payment_details = models.TextField(
+        blank=True, help_text="Bank, branch, account, PIX key... printed at the bottom of statements."
+    )
+    hourly_rate = models.DecimalField("Hourly rate", max_digits=10, decimal_places=2, default=Decimal("2750.00"),
+                                      help_text="Used to suggest the amount from the session length.")
+    currency = models.CharField(max_length=3, default="BRL")
+
+    def __str__(self):
+        return self.company_name
+
+    @classmethod
+    def get(cls):
+        return cls.objects.order_by("pk").first() or cls.objects.create()
+
+
+class Charge(models.Model):
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name="charges")
+    date = models.DateField()
+    minutes = models.PositiveIntegerField("Time (minutes)", null=True, blank=True)
+    description = EncryptedTextField()
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=3, default="BRL")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["date", "pk"]
+
+    def __str__(self):
+        return f"{self.date:%d/%m/%Y} {self.description}"
+
+    @property
+    def audit_student(self):
+        return self.student
+
+
+class Payment(models.Model):
+    class Method(models.TextChoices):
+        PIX = "pix", "PIX"
+        TRANSFER = "transfer", "Bank transfer"
+        BOLETO = "boleto", "Boleto"
+        CARD = "card", "Card"
+        CASH = "cash", "Cash"
+        OTHER = "other", "Other"
+
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name="payments")
+    date = models.DateField()
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=3, default="BRL")
+    method = models.CharField(max_length=10, choices=Method.choices, default=Method.PIX)
+    reference = models.CharField(max_length=100, blank=True, help_text="Optional, e.g. the statement month it pays.")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["date", "pk"]
+
+    def __str__(self):
+        return f"Payment {self.date:%d/%m/%Y}"
 
     @property
     def audit_student(self):

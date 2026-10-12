@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load portal_tags %}
+{% block title %}How past students did · {{ student }} · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'student_detail' student.pk %}">← {{ student }}</a></p>
+<h1>How past PrepMe students did</h1>
+<p class="subtle">
+  Anonymous results from past PrepMe students who agreed to share them. Any group with fewer than {{ min_group }} students is never shown.
+  IB is compared only with IB students, and GPA only with students from your high school.
+  Numbers are medians and rounded. Results depend on much more than scores, so use them as a rough guide only.
+</p>
+{% for r in results %}
+<section class="card">
+  <h2>{{ r.university }}</h2>
+  {% if r.sections %}
+    {% for s in r.sections %}
+    <h3>{{ s.label }} <span class="subtle">· yours: {{ s.mine }}</span></h3>
+    {% if s.groups %}
+    <ul class="rows">
+      {% for g in s.groups %}
+      <li>
+        <div class="row-main"><span class="title">{{ g.label }}</span> <span class="subtle">· {{ g.count }} students</span></div>
+        <span>median {{ g.median }}</span>
+        <span class="chip {% if g.position == 'above' %}ok{% elif g.position == 'below' %}warn{% endif %}">you're {{ g.position }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="empty">Not enough past results to show.</p>{% endif %}
+    {% endfor %}
+  {% else %}
+    <p class="empty">Add your test scores (SAT, ACT or IB) or GPA to compare.</p>
+  {% endif %}
+  {% if r.aid %}<p class="subtle">Median scholarship or grant offered to admitted PrepMe students: {{ r.aid.median|money:"USD" }} per year ({{ r.aid.count }} students).</p>{% endif %}
+</section>
+{% empty %}
+<p class="empty">No schools on the list yet.</p>
+{% endfor %}
+{% endblock %}

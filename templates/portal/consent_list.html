@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Consent · {{ student }} · PrepMe Portal{% endblock %}
+{% block content %}
+<p class="subtle"><a href="{% url 'student_detail' student.pk %}">← {{ student }}</a></p>
+<div class="page-head">
+  <div>
+    <h1>Consent</h1>
+    <p class="subtle">A student's results are used in anonymous benchmarks only while an "anonymized results" consent is active.</p>
+  </div>
+  <a class="btn" href="{% url 'consent_add' student.pk %}">Record consent</a>
+</div>
+<div class="card">
+  <ul class="rows">
+    {% for c in consents %}
+    <li>
+      <div class="row-main">
+        <div class="title">{{ c.get_kind_display }}</div>
+        <div class="subtle">{{ c.get_given_by_display }}: {{ c.given_by_name }} · {{ c.given_on|date:"d/m/Y" }} · text version {{ c.text_version }}</div>
+      </div>
+      {% if c.is_active %}
+        <span class="chip ok">Active</span>
+        <form method="post" action="{% url 'consent_withdraw' c.pk %}" class="inline-form">{% csrf_token %}<button class="btn small secondary" type="submit">Mark withdrawn</button></form>
+      {% else %}
+        <span class="chip muted">Withdrawn {{ c.withdrawn_on|date:"d/m/Y" }}</span>
+      {% endif %}
+    </li>
+    {% empty %}<li class="empty">No consent recorded.</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

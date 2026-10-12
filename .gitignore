@@ -8,3 +8,4 @@ staticfiles/
 Logo HR.pdf
 db.sqlite3.bak
 *.bak
+*.pdf

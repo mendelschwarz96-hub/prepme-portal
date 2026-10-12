@@ -175,6 +175,8 @@ if not DEBUG:
     # The main site (Squarespace) is separate, so HSTS covers only this host.
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
     SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    # HSTS for every subdomain / preload is a decision for the main domain, not this app.
+    SILENCED_SYSTEM_CHECKS = ["security.W005", "security.W021"]
 
 # Email: console in development, SMTP (e.g. Resend or Postmark) in production.
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "PrepMe Portal <no-reply@prepme.education>")
@@ -192,6 +194,9 @@ else:
 SITE_URL = env("SITE_URL", "http://127.0.0.1:8000")
 
 INVITE_VALID_DAYS = 14
+
+# Benchmarks never show any number based on fewer than this many past students.
+BENCHMARK_MIN_GROUP = 3
 
 # U.S. College Scorecard API (free key from https://api.data.gov/signup/).
 # Without a key the shared DEMO_KEY is used, which allows only a few requests per hour.
