@@ -1,10 +1,12 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
+from django.views.generic import RedirectView
 
 from . import views
 
 urlpatterns = [
-    path("login/", auth_views.LoginView.as_view(redirect_authenticated_user=True), name="login"),
+    # Old address; the login page now lives at /login/.
+    path("login/", RedirectView.as_view(pattern_name="login", query_string=True)),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("password/change/", auth_views.PasswordChangeView.as_view(), name="password_change"),
     path("password/change/done/", auth_views.PasswordChangeDoneView.as_view(), name="password_change_done"),

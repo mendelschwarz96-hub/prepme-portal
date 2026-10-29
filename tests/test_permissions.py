@@ -31,6 +31,16 @@ def test_anonymous_redirected_to_login(client, name):
     assert reverse("login") in response["Location"]
 
 
+def test_bare_address_goes_to_plain_login(client):
+    response = client.get("/")
+    assert response["Location"] == "/login/"
+
+
+def test_old_login_address_still_works(client):
+    response = client.get("/accounts/login/?next=/students/")
+    assert response["Location"] == "/login/?next=/students/"
+
+
 def test_anonymous_cannot_view_student(client, student):
     response = client.get(reverse("student_detail", args=[student.pk]))
     assert response.status_code == 302

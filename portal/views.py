@@ -82,9 +82,10 @@ def _add_validation_errors(request, exc):
 
 # ------------------------------------------------------------------ home
 
-@login_required
 def home(request):
     user = request.user
+    if not user.is_authenticated:
+        return redirect("login")  # plain /login/, without ?next=/
     if user.is_counselor:
         return redirect("dashboard")
     students = list(summary_students(user))
