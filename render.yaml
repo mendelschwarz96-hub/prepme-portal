@@ -5,7 +5,7 @@ services:
     name: prepme-portal
     runtime: python
     plan: starter
-    region: virginia  # same region as the Neon database (AWS us-east-1)
+    region: ohio  # same region as the Neon database (AWS us-east-2)
     buildCommand: "./build.sh"
     startCommand: "gunicorn config.wsgi:application --workers 2 --timeout 60"
     healthCheckPath: /accounts/login/

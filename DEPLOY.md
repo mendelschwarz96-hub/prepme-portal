@@ -16,7 +16,7 @@ Use a different key from the one in your local `.env`.
 
 ## 2. Database (Neon)
 
-1. In Neon, create a project named `prepme-portal` in region **AWS US East 1 (N. Virginia)**,
+1. In Neon, create a project named `prepme-portal` in region **AWS US East 2 (Ohio)**,
    the same region as the web server.
 2. Copy the **pooled** connection string (it ends in `?sslmode=require`).
 
@@ -63,7 +63,7 @@ Until email is set up, invites still work: the invite page shows a one-time link
 
 - Delete nothing locally; the demo data lives only in your local `db.sqlite3`, never online.
 - Have her lawyer review the consent wording (LGPD, minors). Record consents under each student → Consent.
-- Data is stored in the U.S. (Render and Neon, Virginia). Mention this in PrepMe's privacy notice.
+- Data is stored in the U.S. (Render and Neon, Ohio). Mention this in PrepMe's privacy notice.
 - In Neon, check that backups / point-in-time restore are on.
 
 ## Updating later
